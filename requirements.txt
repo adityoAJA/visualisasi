@@ -4,3 +4,4 @@ numpy
 plotly
 netcdf4
 openpyxl
+h5netcdf
