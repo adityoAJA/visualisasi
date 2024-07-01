@@ -23,7 +23,7 @@ def load_excel_data(file_path, sheet_name):
     return df
 
 # Path to your Excel file
-file_path = "D:/streamlit/Anomali.xlsx"
+file_path = "Anomali.xlsx"
 
 with tabs[0]:
      # Load the data
