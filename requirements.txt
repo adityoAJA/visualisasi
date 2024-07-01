@@ -1,7 +1,6 @@
 xarray
 pandas
 numpy
-io
 plotly
 plotly.express
 plotly.graph_objects
