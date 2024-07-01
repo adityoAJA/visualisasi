@@ -7,7 +7,7 @@ import numpy as np
 import io
 
 st.set_page_config(
-        page_title="Dashboard Perubahan Iklim",
+        page_title="Visualisasi Adit",
         page_icon="🏠",
         layout="centered",
         initial_sidebar_state="expanded"
