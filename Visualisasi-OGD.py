@@ -15,7 +15,7 @@ st.set_page_config(
 
 st.title('Demo Visualisasi Interaktif')
 
-tabs = st.tabs(['Warming Stripes','Peta Anomali Bulanan','Visualisasi netCDF'])
+tabs = st.tabs(['Peta Anomali Bulanan','Warming Stripes','Visualisasi netCDF'])
 
 @st.cache_data
 def load_excel_data(file_path, sheet_name):
@@ -25,7 +25,7 @@ def load_excel_data(file_path, sheet_name):
 # Path to your Excel file
 file_path = "Anomali.xlsx"
 
-with tabs[0]:
+with tabs[1]:
      # Load the data
                 st.header("Warming Stripes Per Provinsi")
 
@@ -68,7 +68,7 @@ with tabs[0]:
                 fig = create_temperature_stripe(data, selected_column)
                 st.plotly_chart(fig)
 
-with tabs[1]:
+with tabs[0]:
       # peta anomali, mondif, suhu bulanan
             st.header("Peta Anomali Suhu Udara Per Bulan")
 
