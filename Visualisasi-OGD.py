@@ -52,7 +52,7 @@ with tabs[1]:
                     fig.update_yaxes(showticklabels=False)  # Hide y-axis ticks
                     
                     fig.update_layout(
-                        coloraxis_colorbar=dict(tickformat='.2f', title="°C"),
+                        coloraxis_colorbar=dict(tickformat='.2f', title="°C", x=1, y=0.5, len=0.8, thickness=10),
                         xaxis={'side': 'bottom'},
                         title={'text': f"Anomali Suhu Udara Tahunan di {selected_column}", 'x':0.45, 'y':0.95,
                         'xanchor':'center', 'yanchor':'top',
