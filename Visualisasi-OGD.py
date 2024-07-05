@@ -57,7 +57,7 @@ with tabs[0]:
                             with tempfile.NamedTemporaryFile(delete=False, suffix=".nc") as final_tmp:
                                 sliced_data.to_netcdf(final_tmp.name)  # Save sliced data to a temporary file
                                 final_tmp_path = final_tmp.name
-                                st.success(f"Berhasil mengunduh {fname} dan file siap disimpan ke local direktori")
+                                st.success(f"Berhasil mengunduh {fname} dari server")
         
                                 # Save the file information to session state
                                 if 'download_files' not in st.session_state:
@@ -110,11 +110,11 @@ with tabs[0]:
             
             # Display download buttons for available files
             if 'download_files' in st.session_state and st.session_state['download_files']:
-                st.subheader('File yang Tersedia untuk Diunduh:')
+                st.write('Simpan file ke local direktori:')
                 for file_path, file_name in st.session_state['download_files']:
                     with open(file_path, "rb") as file:
                         st.download_button(
-                            label=f"Simpan {file_name}",
+                            label=f"{file_name}",
                             data=file,
                             file_name=file_name
                         )
