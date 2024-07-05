@@ -1,13 +1,11 @@
 import streamlit as st
 import pandas as pd
 import xarray as xr
-import netCDF4 as nc
 import numpy as np
 import io
 import requests
 import os
 import tempfile
-import base64
 
 st.set_page_config(
     page_title="Dashboard Visualisasi Interaktif",
@@ -132,222 +130,66 @@ with tabs[0]:
 
     if __name__ == '__main__':
         main()
-  
+
 with tabs[1]:
-    # File uploader for custom NetCDF files
-            st.subheader("Visualisasi Data Reanalysis dan Proyeksi")
-            # uploader untuk file netCDF
-            uploaded_file = st.file_uploader("Unggah file", type=["nc"])
-            with st.expander(":blue-background[**Keterangan :**]"):
-                    st.caption("**Jenis data yang bisa diunggah hanya untuk parameter curah hujan, dengan kriteria yaitu :**")
-                    st.caption("**Kriteria 1 (Data CHIRPS):** *Pastikan nama variabel dalam file nc meliputi precip, latitude, longitude.*")
-                    st.caption("**Kriteria 2 (Data CMIP6) :** *Pastikan nama variabel dalam file nc meliputi pr, lat, lon.*")
+    st.subheader("Visualisasi Data Reanalysis dan Proyeksi")
+    uploaded_file = st.file_uploader("Unggah file", type=["nc"])
+    
+    with st.expander(":blue-background[**Keterangan :**]"):
+        st.caption("**Jenis data yang dapat divisualisasikan :**")
+        st.caption("*Data CHIRPS :* *data curah hujan dengan variabel : precip, latitude, longitude*")
+        st.caption("*Data CMIP6 :* *data curah hujan dengan variabel : pr, lat, lon*")
+        
+    if uploaded_file is not None:
+        try:
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file.write(uploaded_file.read())
+                temp_file.flush()
 
-            if uploaded_file is not None:
-                # Read the file content into a buffer
-                file_content = uploaded_file.read()
+            data = xr.open_dataset(temp_file.name, decode_times=False)
+            variable_options = data.data_vars.keys()
+            coordinate_options = data.coords.keys()
 
-                # Load the data from the buffer with caching to avoid reloading on every interaction
-                def load_data(file_content):
-                    try:
-                        with xr.open_dataset(io.BytesIO(file_content), engine='h5netcdf') as data:
-                            return data.load()
-                    except Exception as e:
-                        st.error(f"Error loading data: {e}")
-                        return None
-
-                # Load the data
-                data = load_data(file_content)
-
-                # Determine the precipitation variable name ('precip' or 'pr')
-                if 'precip' in data:
-                    pr_var = 'precip'
-                    lat_var = 'latitude'
-                    lon_var = 'longitude'
-                    name_var = 'Reanalysis'
-                elif 'pr' in data:
-                    pr_var = 'pr'
-                    lat_var = 'lat'
-                    lon_var = 'lon'
-                    name_var = 'Proyeksi'
-                else:
-                    st.error("Tidak ada variabel yang sesuai kriteria dalam file netCDF anda.")
-                    st.stop()
-
-                # Extract necessary variables
-                lat = data[lat_var].values
-                lon = data[lon_var].values
-                pr = data[pr_var]
-
-                # If pr_var is 'pr', convert precipitation values to millimeters per day
-                if pr_var == 'pr':
-                    pr *= 86400
-
-                # Compute monthly sums along the time dimension
-                pr_monthly_sum = pr.resample(time='1MS').sum(dim='time')
-
-                # membuat list bulan
-                available_months = pr_monthly_sum['time'].dt.strftime('%B %Y').values
-
-                # memilih bulan yang akan ditampilkan
-                selected_month = st.selectbox('Pilih Bulan', available_months)
-
-                # Select the precipitation data for the chosen month
-                pr_selected = pr_monthly_sum.sel(time=selected_month)
-
-                # Define precipitation ranges and labels
-                precip_ranges = [-np.inf, 50, 150, 300, 500, 750, np.inf]
-                precip_labels = ['<50 mm', '50-150 mm', '150-300 mm', '300-500 mm', '500-750 mm', '>750 mm']
-
-                # Flatten the data for plotting
-                lat_flat = lat.repeat(len(lon))
-                lon_flat = np.tile(lon, len(lat))
-                pr_flat = pr_selected.values.flatten()
-
-                # Filter out NaN and non-positive values
-                valid_mask = ~np.isnan(pr_flat) & (pr_flat > 0)
-                lat_valid = lat_flat[valid_mask]
-                lon_valid = lon_flat[valid_mask]
-                pr_valid = pr_flat[valid_mask]
-
-                # Digitize the precipitation data to categorize them
-                pr_categories = np.digitize(pr_valid, bins=precip_ranges) - 1
-                colors = px.colors.sequential.RdBu[::2][:len(precip_ranges)]
-
-                # Create a Plotly figure
-                fig_map = go.Figure()
-
-                # Add scatter plot trace
-                fig_map.add_trace(go.Scattermapbox(
-                    lat=lat_valid,
-                    lon=lon_valid,
-                    mode='markers',
-                    marker=go.scattermapbox.Marker(
-                        size=5,
-                        color=pr_categories,
-                        colorscale=colors,
-                        cmin=0,
-                        cmax=len(precip_ranges) - 1,
-                        colorbar=dict(
-                            title='Curah Hujan (mm)',
-                            orientation='h',
-                            x=0.5,
-                            y=-0.25,
-                            len=0.9,
-                            thickness=15,
-                            tickvals=np.arange(1, len(precip_ranges) - 1),
-                            ticktext=precip_ranges[1:]
-                        )
-                    ),
-                    text=[f'Lintang: {lat}<br>Bujur: {lon}<br>Curah Hujan: {pr:.3f}' 
-                        for pr, lat, lon in zip(pr_valid, lat_valid, lon_valid)],
-                    hoverinfo='text'
-                ))
-
-                # Update layout with Mapbox for basemap
-                fig_map.update_layout(
-                    mapbox=dict(
-                        style="open-street-map",
-                        center={"lat": float(np.mean(lat)), "lon": float(np.mean(lon))},
-                        zoom=3,
-                    ),
-                    width=900,
-                    height=500,
-                    title={'text': f'Peta {name_var} Curah Hujan Bulanan Periode {selected_month}',
-                               'x': 0.5, 'y': 0.9, 'xanchor': 'center', 'yanchor': 'top',
-                                'font':{'size':20,'family':'Arial, sans-serif'}},
-                    autosize=True,
-                    margin={"r": 0, "t": 100, "l": 0, "b": 0}
-                )
-
-                # Display the Plotly map in Streamlit
-                st.plotly_chart(fig_map)
-                st.divider()
-
-                # Calculate precipitation category counts for the pie chart
-                precip_counts = np.histogram(pr_valid, bins=precip_ranges)[0]
-
-                fig_pie = go.Figure(data=[go.Pie(
-                        labels=precip_labels,
-                        values=precip_counts,
-                        hole=0.4,
-                        marker=dict(colors=colors)
-                    )])
-
-                # Options for traceorder: 'normal', 'reversed', 'grouped', 'reversed+grouped'
-                fig_pie.update_layout(
-                    title=dict(
-                        text=f'Distribusi Curah Hujan<br>periode {selected_month}',
-                        font=dict(size=20),
-                        x=0.5,
-                        xanchor='center'
-                    ),
-                    legend=dict(
-                        title=dict(
-                            text='milimeter (mm) :',
-                            font=dict(size=14, family='Calibri, sans-serif')
-                        ),
-                        x=0.5,
-                        y=-0.1,
-                        orientation='h',
-                        yanchor='top',
-                        xanchor='center',
-                        traceorder='normal'
-                    )
-                )
-
-                # Add annotation in the center of the hole
-                fig_pie.add_annotation(dict(
-                    text=f'Total Titik<br>{sum(precip_counts)}',
-                    x=0.5,
-                    y=0.5,
-                    font_size=15,
-                    showarrow=False
-                ))
-
-                st.plotly_chart(fig_pie)
-                st.divider()
-
-                # User input for selecting longitude and latitude
-                col = st.columns(2)
-                with col[0]:
-                    selected_lat = st.number_input('Input Lintang', value=-2.000, format="%.3f", step=0.025, key='lat_input')
-                with col[1]:
-                    selected_lon = st.number_input('Input Bujur', value=120.000, format="%.3f", step=0.025, key='lon_input')
-
-                # Display the list of coordinates in an expander
-                with st.expander(":blue-background[**Keterangan :**]"):
-                    st.caption("*Ketik titik koordinat berdasarkan referensi koordinat dari peta reanalysis di atas (arahkan kursor di atas peta)*")
-                    st.caption("*Atau bisa menambahkan atau mengurangi nilai dengan klik tanda tambah atau kurang*")
-                    st.caption("*Apabila tidak muncul nilai pada line chart, berarti tidak ada nilai curah hujan (NaN) pada titik tersebut*")
-
-                # Find closest indices to selected lon and lat
-                lon_idx = np.abs(lon - selected_lon).argmin()
-                lat_idx = np.abs(lat - selected_lat).argmin()
-
-                pr_timeseries = pr[:, lat_idx, lon_idx].values
-
-                # Convert time series to pandas DataFrame for easier plotting with Plotly Express
-                df = pd.DataFrame({
-                        'Rentang Waktu': pr.time.values,
-                        'Curah Hujan (mm/hari)': pr_timeseries
-                    })
-
-                # Create a Plotly line chart for the time series
-                fig_line = px.line(df, x='Rentang Waktu', y='Curah Hujan (mm/hari)')
-                    
-                # Update layout of the line chart
-                fig_line.update_layout(
-                        xaxis_title='Rentang Waktu',
-                        yaxis_title='Curah Hujan (mm/hari)',
-                        title={'text': f'Grafik Curah Hujan Harian Pada Koordinat {selected_lon} dan {selected_lat}',
-                               'x': 0.5, 'y': 0.9, 'xanchor': 'center', 'yanchor': 'top',
-                                'font':{'size':18,'family':'Arial, sans-serif'}},
-                        margin={"r": 0, "t": 100, "l": 0, "b": 0}
-                    )
-
-                # Display the Plotly line chart in Streamlit
-                st.plotly_chart(fig_line)
-
+            if 'precip' in variable_options and {'latitude', 'longitude'}.issubset(coordinate_options):
+                dataset_type = 'CHIRPS'
+                varname = 'precip'
+                lat = 'latitude'
+                lon = 'longitude'
+            elif 'pr' in variable_options and {'lat', 'lon'}.issubset(coordinate_options):
+                dataset_type = 'CMIP6'
+                varname = 'pr'
+                lat = 'lat'
+                lon = 'lon'
             else:
-                st.write("Silahkan unggah file netCDF anda untuk visualisasi data yaa.")
+                st.error('File tidak memiliki struktur data yang sesuai. Pastikan file memiliki variabel dan koordinat yang sesuai.')
+                st.stop()
+
+            st.success(f'File netCDF diunggah dan dikenali sebagai data {dataset_type} dengan variabel "{varname}".')
+            
+            # Create a monthly summed dataset
+            monthly_data = data[varname].resample(time='1M').sum(dim='time')
+
+            # Dropdown to select month
+            selected_month = st.selectbox('Pilih Bulan', options=range(1, 13), format_func=lambda x: f'Bulan {x}')
+
+            # Select data for the chosen month
+            selected_data = monthly_data.sel(time=monthly_data['time.month'] == selected_month)
+
+            # Display the map and pie chart
+            st.write(f'Menampilkan peta untuk bulan {selected_month}')
+
+            fig = px.imshow(selected_data, x=lon, y=lat, origin='upper', aspect='auto')
+            st.plotly_chart(fig)
+
+            # Allow user to input coordinates
+            st.write('Masukkan koordinat untuk melihat data series.')
+            longitude_input = st.number_input('Bujur', min_value=float(data[lon].min()), max_value=float(data[lon].max()), step=0.01)
+            latitude_input = st.number_input('Lintang', min_value=float(data[lat].min()), max_value=float(data[lat].max()), step=0.01)
+
+            if st.button('Tampilkan Data Series'):
+                series_data = data[varname].sel({lon: longitude_input, lat: latitude_input}, method='nearest')
+                st.write(f'Data series untuk koordinat ({latitude_input}, {longitude_input}):')
+                st.line_chart(series_data)
+
+        except Exception as e:
+            st.error(f'Terjadi kesalahan saat membaca atau memproses file: {e}')
