@@ -59,13 +59,12 @@ with tabs[0]:
                         sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
 
                         # Save sliced data to a temporary file
-                        final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}_sliced.nc"
+                        final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}.nc"
                         sliced_data.to_netcdf(final_tmp_path)
                         st.success(f"Memotong dan menyimpan {fname} sesuai koordinat terpilih")
 
                         # Display download button for the current file
-                        with st.expander(':green-background[**Simpan file :**]'):
-                            st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
+                        st.caption(':green-background[**Simpan file dengan klik tombol di bawah:**]'):
                         with open(final_tmp_path, "rb") as file:
                             st.download_button(
                                 label=f"Unduh {varname}_{iy}_{resolution}_sliced.nc",
