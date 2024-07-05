@@ -67,9 +67,9 @@ with tabs[0]:
                         st.caption(':green-background[**Simpan file dengan klik tombol di bawah:**]')
                         with open(final_tmp_path, "rb") as file:
                             st.download_button(
-                                label=f"Unduh {varname}_{iy}_{resolution}_sliced.nc",
+                                label=f"Simpan {varname}_{iy}_{resolution}.nc",
                                 data=file,
-                                file_name=f"{varname}_{iy}_{resolution}_sliced.nc",
+                                file_name=f"{varname}_{iy}_{resolution}.nc",
                                 key=f"download_button_{iy}"  # Unique key for each file
                             )
 
