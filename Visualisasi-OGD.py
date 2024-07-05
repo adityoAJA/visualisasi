@@ -18,7 +18,7 @@ st.set_page_config(
 
 st.title('Demo Visualisasi Interaktif')
 
-tabs = st.tabs(['Download Data Reanalysis,'Visualisasi netCDF'])
+tabs = st.tabs(['Download Data Reanalysis','Visualisasi netCDF'])
 
 with tabs[0]:
      # Function to download and process data
