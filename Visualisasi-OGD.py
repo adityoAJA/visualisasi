@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import xarray as xr
+import netcdf4 as nc
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
@@ -52,10 +53,11 @@ with tabs[0]:
                         progress_bar.empty()
                         st.success(f"Berhasil mengunduh {fname} dari server")
                         
-                        # Load and process the downloaded NetCDF file
+                        # Open the downloaded NetCDF file using netCDF4 directly
                         try:
-                            with xr.open_dataset(temp_file_path) as ds:
-                                st.write(ds)  # Display basic info about the NetCDF dataset
+                            nc_file = nc.Dataset(temp_file_path, 'r')
+                            st.write(nc_file)  # Display basic info about the NetCDF file
+                            nc_file.close()
                         except Exception as e:
                             st.error(f"Gagal membuka file NetCDF: {e}")
                     
@@ -103,18 +105,6 @@ with tabs[0]:
         
             if st.button('Download Data'):
                 download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
-        
-            # Display download buttons for available files
-            if 'download_files' in st.session_state and st.session_state['download_files']:
-                with st.expander(':green-background[**Simpan file :**]'):
-                    st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
-                for file_path, file_name in st.session_state['download_files']:
-                    with open(file_path, "rb") as file:
-                        st.download_button(
-                            label=f"{file_name}",
-                            data=file,
-                            file_name=file_name
-                        )
         
         if __name__ == '__main__':
             main()
