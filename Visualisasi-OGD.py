@@ -7,7 +7,7 @@ import io
 import requests
 import os
 import tempfile
-import base64  # Tambahkan impor untuk base64
+import base64
 
 st.set_page_config(
     page_title="Dashboard Visualisasi Interaktif",
@@ -88,11 +88,12 @@ with tabs[0]:
         if 'download_files' in st.session_state and st.session_state['download_files']:
             with st.expander(':green-background[**Simpan file :**]'):
                 st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
-            for file_path, file_name in st.session_state['download_files']:
+            for index, (file_path, file_name) in enumerate(st.session_state['download_files']):
                 st.download_button(
                     label=f"Unduh {file_name}",
                     data=file_path,
-                    file_name=file_name
+                    file_name=file_name,
+                    key=f"download_button_{index}"  # Assign unique key based on index or file name
                 )
 
     # Streamlit app
