@@ -16,7 +16,7 @@ st.set_page_config(
         initial_sidebar_state="expanded"
     )
 
-st.title('Demo Visualisasi Interaktif')
+st.title('Dashboard Visualisasi Interaktif')
 
 tabs = st.tabs(['Download Data Reanalysis','Visualisasi netCDF'])
 
@@ -116,7 +116,7 @@ with tabs[0]:
                     
 with tabs[1]:
     # File uploader for custom NetCDF files
-            st.header("Visualisasi Data Reanalysis dan Proyeksi")
+            st.subheader("Visualisasi Data Reanalysis dan Proyeksi")
             # uploader untuk file netCDF
             uploaded_file = st.file_uploader("Unggah file", type=["nc"])
             with st.expander(":blue-background[**Keterangan :**]"):
