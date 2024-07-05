@@ -62,7 +62,7 @@ with tabs[0]:
                                 
                                 with open(final_tmp_path, "rb") as file:
                                     btn = st.download_button(
-                                        label="Unduh File",
+                                        label="Simpan File",
                                         data=file,
                                         file_name=f"{varname}_{iy}_{resolution}.nc"
                                     )
