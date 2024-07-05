@@ -52,7 +52,7 @@ with tabs[0]:
         
                         with xr.open_dataarray(temp_file_path, decode_times=False) as data:
                             data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
-                            sliced_data = data.isel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
+                            sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
                             
                             with tempfile.NamedTemporaryFile(delete=False, suffix=".nc") as final_tmp:
                                 sliced_data.to_netcdf(final_tmp.name)  # Save sliced data to a temporary file
