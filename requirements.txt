@@ -2,7 +2,6 @@ xarray
 pandas
 numpy
 plotly
-netcdf4
+netCDF4
 openpyxl
-h5netcdf>=0.9.9
 h5py>=3.6.0
