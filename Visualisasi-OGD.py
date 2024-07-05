@@ -59,24 +59,14 @@ with tabs[0]:
                         sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
 
                         # Save sliced data to a temporary file
-                        final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}.nc"
+                        final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}_sliced.nc"
                         sliced_data.to_netcdf(final_tmp_path)
                         st.success(f"Memotong dan menyimpan {fname} sesuai koordinat terpilih")
 
-                         # Save the file information to session state
+                        # Save the file information to session state
                         if 'download_files' not in st.session_state:
                             st.session_state['download_files'] = []
-                        st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
-
-                        # Display download button for the current file
-                        st.caption(':green-background[**Simpan file dengan klik tombol di bawah:**]')
-                        with open(final_tmp_path, "rb") as file:
-                            st.download_button(
-                                label=f"Simpan {varname}_{iy}_{resolution}.nc",
-                                data=file,
-                                file_name=f"{varname}_{iy}_{resolution}.nc",
-                                key=f"download_button_{iy}"  # Unique key for each file
-                            )
+                        st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}_sliced.nc"))
 
                     except Exception as e:
                         st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -124,11 +114,25 @@ with tabs[0]:
             st.caption("*Data akan didownload per tahun, bila ingin mendownload 1 tahun saja maka tahun awal dan tahun akhir disamakan.*")
 
         if st.button('Download Data'):
+            st.session_state['download_files'] = []  # Reset the session state for new downloads
             download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
+
+        # Display download buttons for available files
+        if 'download_files' in st.session_state and st.session_state['download_files']:
+            with st.expander(':green-background[**Simpan file :**]'):
+                st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
+            for idx, (file_path, file_name) in enumerate(st.session_state['download_files']):
+                with open(file_path, "rb") as file:
+                    st.download_button(
+                        label=f"Unduh {file_name}",
+                        data=file,
+                        file_name=file_name,
+                        key=f"download_button_{idx}"  # Unique key for each file
+                    )
 
     if __name__ == '__main__':
         main()
-                    
+  
 with tabs[1]:
     # File uploader for custom NetCDF files
             st.subheader("Visualisasi Data Reanalysis dan Proyeksi")
