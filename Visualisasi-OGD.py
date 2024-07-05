@@ -210,7 +210,7 @@ with tabs[1]:
                     lon=lon_valid,
                     mode='markers',
                     marker=go.scattermapbox.Marker(
-                        size=6,
+                        size=5,
                         color=pr_categories,
                         colorscale=colors,
                         cmin=0,
