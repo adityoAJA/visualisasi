@@ -23,7 +23,6 @@ tabs = st.tabs(['Download Data Reanalysis','Visualisasi netCDF'])
 with tabs[0]:
      # Function to download and process data
         def download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year):
-            # Define the template URL based on the dataset and resolution
             if resolution == 'p05':
                 template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p05/'
             elif resolution == 'p25':
@@ -59,13 +58,11 @@ with tabs[0]:
                                 sliced_data.to_netcdf(final_tmp.name)  # Save sliced data to a temporary file
                                 final_tmp_path = final_tmp.name
                                 st.success(f"Berhasil mengunduh {fname} dan file siap disimpan ke local direktori")
-                                
-                                with open(final_tmp_path, "rb") as file:
-                                    btn = st.download_button(
-                                        label=f"Simpan File {fname}",
-                                        data=file,
-                                        file_name=f"{varname}_{iy}_{resolution}.nc"
-                                    )
+        
+                                # Save the file information to session state
+                                if 'download_files' not in st.session_state:
+                                    st.session_state['download_files'] = []
+                                st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
         
                     except Exception as e:
                         st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -95,7 +92,7 @@ with tabs[0]:
             latitude = st.slider('Pilih Rentang Lintang', min_value=-12.0, max_value=8.0, value=(-11.08, 6.0), step=0.1)
             
             with st.expander(":blue-background[**Keterangan :**]"):
-                st.caption("*Defalut Rentang wilayah yang digunakan adalah Lintang dan Bujur di wilayah Indonesia.*")
+                st.caption("*Default Rentang wilayah yang digunakan adalah Lintang dan Bujur di wilayah Indonesia.*")
                 st.caption("*Data yang akan tersimpan akan dipotong sesuai pilihan Lintang dan Bujur yang diinginkan.*")
             
             col1, col2 = st.columns(2)
@@ -110,6 +107,17 @@ with tabs[0]:
         
             if st.button('Download Data'):
                 download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
+            
+            # Display download buttons for available files
+            if 'download_files' in st.session_state and st.session_state['download_files']:
+                st.subheader('File yang Tersedia untuk Diunduh:')
+                for file_path, file_name in st.session_state['download_files']:
+                    with open(file_path, "rb") as file:
+                        st.download_button(
+                            label=f"Simpan {file_name}",
+                            data=file,
+                            file_name=file_name
+                        )
         
         if __name__ == '__main__':
             main()
