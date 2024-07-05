@@ -50,7 +50,7 @@ with tabs[0]:
                         progress_bar.empty()
                         st.success(f"Memotong {fname} sesuai koordinat terpilih")
         
-                        with xr.open_dataset(temp_file_path, engine='h5netcdf', decode_times=False) as data:
+                        with xr.open_dataset(temp_file_path, engine='netcdf4', decode_times=False) as data:
                             data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
                             sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
                             
