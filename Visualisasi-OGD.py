@@ -21,7 +21,7 @@ st.title('Dashboard Visualisasi Interaktif')
 tabs = st.tabs(['Download Data Reanalysis','Visualisasi netCDF'])
 
 with tabs[0]:
-     # Function to download and process data
+    # Function to download and process data
         def download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year):
             if resolution == 'p05':
                 template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p05/'
@@ -50,7 +50,7 @@ with tabs[0]:
                         progress_bar.empty()
                         st.success(f"Memotong {fname} sesuai koordinat terpilih")
         
-                        with xr.open_dataarray(temp_file_path, decode_times=False) as data:
+                        with xr.open_dataset(temp_file_path, decode_times=False) as data:
                             data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
                             sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
                             
@@ -111,7 +111,7 @@ with tabs[0]:
             # Display download buttons for available files
             if 'download_files' in st.session_state and st.session_state['download_files']:
                 with st.expander(':green-background[**Simpan file :**]'):
-                        st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
+                    st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
                 for file_path, file_name in st.session_state['download_files']:
                     with open(file_path, "rb") as file:
                         st.download_button(
