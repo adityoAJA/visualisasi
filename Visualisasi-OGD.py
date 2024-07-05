@@ -63,6 +63,11 @@ with tabs[0]:
                         sliced_data.to_netcdf(final_tmp_path)
                         st.success(f"Memotong dan menyimpan {fname} sesuai koordinat terpilih")
 
+                         # Save the file information to session state
+                        if 'download_files' not in st.session_state:
+                            st.session_state['download_files'] = []
+                        st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
+
                         # Display download button for the current file
                         st.caption(':green-background[**Simpan file dengan klik tombol di bawah:**]')
                         with open(final_tmp_path, "rb") as file:
