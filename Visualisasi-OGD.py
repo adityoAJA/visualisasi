@@ -59,14 +59,14 @@ with tabs[0]:
                         sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
 
                         # Save sliced data to a temporary file
-                        final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}_sliced.nc"
+                        final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}.nc"
                         sliced_data.to_netcdf(final_tmp_path)
                         st.success(f"Memotong dan menyimpan {fname} sesuai koordinat terpilih")
 
                         # Save the file information to session state
                         if 'download_files' not in st.session_state:
                             st.session_state['download_files'] = []
-                        st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}_sliced.nc"))
+                        st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
 
                     except Exception as e:
                         st.error(f"Kesalahan dalam memproses {fname}: {e}")
