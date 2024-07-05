@@ -139,7 +139,7 @@ with tabs[1]:
 
                 # Load the data from the buffer with caching to avoid reloading on every interaction
                 def load_data(file_content):
-                    with xr.open_dataset(io.BytesIO(file_content), engine='h5netcdf') as data:
+                    with xr.open_dataset(io.BytesIO(file_content), engine='netCDF4') as data:
                         return data.load()
 
                 # Load the data
