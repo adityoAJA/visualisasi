@@ -64,7 +64,7 @@ with tabs[0]:
                         st.success(f"Memotong dan menyimpan {fname} sesuai koordinat terpilih")
 
                         # Display download button for the current file
-                        st.caption(':green-background[**Simpan file dengan klik tombol di bawah:**]'):
+                        st.caption(':green-background[**Simpan file dengan klik tombol di bawah:**]')
                         with open(final_tmp_path, "rb") as file:
                             st.download_button(
                                 label=f"Unduh {varname}_{iy}_{resolution}_sliced.nc",
