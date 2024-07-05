@@ -110,7 +110,8 @@ with tabs[0]:
             
             # Display download buttons for available files
             if 'download_files' in st.session_state and st.session_state['download_files']:
-                st.write(':red-background[**Simpan file ke local direktori :**]')
+                with st.expander(':red-background[**Simpan file :**]'):
+                        st.caption('*File sudah siap disimpan ke local direktori masing-masing dengan klik tombol di bawah*')
                 for file_path, file_name in st.session_state['download_files']:
                     with open(file_path, "rb") as file:
                         st.download_button(
