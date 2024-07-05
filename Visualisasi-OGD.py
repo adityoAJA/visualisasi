@@ -337,7 +337,7 @@ with tabs[1]:
         fig_line = px.line(df, x='Rentang Waktu', y='Curah Hujan (mm/hari)')
         
         # Update layout of the line chart
-                fig_line.update_layout(
+        fig_line.update_layout(
                         xaxis_title='Rentang Waktu',
                         yaxis_title='Curah Hujan (mm/hari)',
                         title={'text': f'Grafik Curah Hujan Harian Pada Koordinat {selected_lon} dan {selected_lat}',
@@ -346,8 +346,8 @@ with tabs[1]:
                         margin={"r": 0, "t": 100, "l": 0, "b": 0}
                     )
 
-                # Display the Plotly line chart in Streamlit
-                st.plotly_chart(fig_line)
+        # Display the Plotly line chart in Streamlit
+        st.plotly_chart(fig_line)
 
     else:
         st.write("Silahkan unggah file netCDF anda untuk visualisasi data yaa.")
