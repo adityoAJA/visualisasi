@@ -7,7 +7,7 @@ import io
 import requests
 import os
 import tempfile
-import base64
+import base64  # Tambahkan impor untuk base64
 
 st.set_page_config(
     page_title="Dashboard Visualisasi Interaktif",
@@ -68,9 +68,6 @@ with tabs[0]:
                             st.session_state['download_files'] = []
                         st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}_sliced.nc"))
 
-                        # Display download link to the user
-                        st.markdown(get_download_link(final_tmp_path, f"{varname}_{iy}_{resolution}_sliced.nc"), unsafe_allow_html=True)
-
                     except Exception as e:
                         st.error(f"Kesalahan dalam memproses {fname}: {e}")
 
@@ -86,12 +83,17 @@ with tabs[0]:
             else:
                 st.error(f"Gagal mengunduh {fname} dari {link}")
 
-    def get_download_link(file_path, file_name):
-        with open(file_path, 'rb') as file:
-            file_bytes = file.read()
-        b64 = base64.b64encode(file_bytes).decode()
-        href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">Download {file_name}</a>'
-        return href
+    # Function to generate download buttons for processed files
+    def display_download_buttons():
+        if 'download_files' in st.session_state and st.session_state['download_files']:
+            with st.expander(':green-background[**Simpan file :**]'):
+                st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
+            for file_path, file_name in st.session_state['download_files']:
+                st.download_button(
+                    label=f"Unduh {file_name}",
+                    data=file_path,
+                    file_name=file_name
+                )
 
     # Streamlit app
     def main():
@@ -125,6 +127,9 @@ with tabs[0]:
 
         if st.button('Download Data'):
             download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
+
+        # Display download buttons for available files
+        display_download_buttons()
 
     if __name__ == '__main__':
         main()
