@@ -63,10 +63,16 @@ with tabs[0]:
                         sliced_data.to_netcdf(final_tmp_path)
                         st.success(f"Memotong dan menyimpan {fname} sesuai koordinat terpilih")
 
-                        # Save the file information to session state
-                        if 'download_files' not in st.session_state:
-                            st.session_state['download_files'] = []
-                        st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}_sliced.nc"))
+                        # Display download button for the current file
+                        with st.expander(':green-background[**Simpan file :**]'):
+                            st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
+                        with open(final_tmp_path, "rb") as file:
+                            st.download_button(
+                                label=f"Unduh {varname}_{iy}_{resolution}_sliced.nc",
+                                data=file,
+                                file_name=f"{varname}_{iy}_{resolution}_sliced.nc",
+                                key=f"download_button_{iy}"  # Unique key for each file
+                            )
 
                     except Exception as e:
                         st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -82,20 +88,6 @@ with tabs[0]:
 
             else:
                 st.error(f"Gagal mengunduh {fname} dari {link}")
-
-    # Function to generate download button for the latest processed file
-    def display_latest_download_button():
-        if 'download_files' in st.session_state and st.session_state['download_files']:
-            latest_file_path, latest_file_name = st.session_state['download_files'][-1]
-            with st.expander(':green-background[**Simpan file :**]'):
-                st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
-            with open(latest_file_path, "rb") as file:
-                st.download_button(
-                    label=f"Unduh {latest_file_name}",
-                    data=file,
-                    file_name=latest_file_name,
-                    key=f"download_button_latest"  # Unique key for the latest file
-                )
 
     # Streamlit app
     def main():
@@ -129,9 +121,6 @@ with tabs[0]:
 
         if st.button('Download Data'):
             download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
-
-        # Display download button for the latest file
-        display_latest_download_button()
 
     if __name__ == '__main__':
         main()
