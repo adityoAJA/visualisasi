@@ -10,7 +10,7 @@ import os
 import tempfile
 
 st.set_page_config(
-        page_title="Visualisasi Adit",
+        page_title="Dashboard Adityo W",
         page_icon="🏠",
         layout="centered",
         initial_sidebar_state="expanded"
@@ -33,7 +33,7 @@ with tabs[0]:
                 fname = f'chirps-v2.0.{iy}.days_{resolution}.nc'
                 link = template + fname
                 st.info(f"Sedang mengunduh {fname}")
-                st.warning('Pastikan tidak menutup/berpindah halaman ketika sedang mengunduh!')
+                st.warning('Pastikan tidak menutup atau berpindah halaman ketika sedang mengunduh!')
                 response = requests.get(link, stream=True)
         
                 if response.status_code == 200:
@@ -58,7 +58,7 @@ with tabs[0]:
                             with tempfile.NamedTemporaryFile(delete=False, suffix=".nc") as final_tmp:
                                 sliced_data.to_netcdf(final_tmp.name)  # Save sliced data to a temporary file
                                 final_tmp_path = final_tmp.name
-                                st.success(f"Berhasil mengunduh dan menyimpan {fname}")
+                                st.success(f"Berhasil mengunduh {fname} dan file siap disimpan ke local direktori")
                                 
                                 with open(final_tmp_path, "rb") as file:
                                     btn = st.download_button(
@@ -80,7 +80,7 @@ with tabs[0]:
         
         # Streamlit app
         def main():
-            st.header('Download Data Curah Hujan Reanalysis Otomatis')
+            st.subheader('Download Data Curah Hujan Reanalysis Otomatis')
         
             varname = 'Curah Hujan'
             resolution = st.selectbox('Pilih Resolusi', ['p05', 'p25'])
