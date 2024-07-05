@@ -8,7 +8,6 @@ import io
 import requests
 import os
 import tempfile
-import scipy
 
 st.set_page_config(
         page_title="Dashboard Adityo W",
@@ -140,7 +139,7 @@ with tabs[1]:
                 # Load the data from the buffer with caching to avoid reloading on every interaction
                 def load_data(file_content):
                     try:
-                        with xr.open_dataset(io.BytesIO(file_content), engine='scipy') as data:
+                        with xr.open_dataset(io.BytesIO(file_content), engine='netcdf4') as data:
                             return data.load()
                     except Exception as e:
                         st.error(f"Error loading data: {e}")
