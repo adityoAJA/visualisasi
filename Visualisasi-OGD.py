@@ -1,10 +1,13 @@
 import streamlit as st
 import pandas as pd
 import xarray as xr
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import numpy as np
 import io
+import requests
+import os
+import tempfile
 
 st.set_page_config(
         page_title="Visualisasi Adit",
@@ -15,138 +18,115 @@ st.set_page_config(
 
 st.title('Demo Visualisasi Interaktif')
 
-tabs = st.tabs(['Peta Anomali Bulanan','Warming Stripes','Visualisasi netCDF'])
-
-@st.cache_data
-def load_excel_data(file_path, sheet_name):
-    df = pd.read_excel(file_path, sheet_name=sheet_name)
-    return df
-
-# Path to your Excel file
-file_path = "Anomali.xlsx"
-
-with tabs[1]:
-     # Load the data
-                st.header("Warming Stripes Per Provinsi")
-
-                df6 = load_excel_data(file_path, sheet_name='Stripes')
-
-                # Sort the data by Year
-                data = df6.sort_values(by='Tahun')
-
-                # menjadikan kolom sebagai data list
-                options = data.columns[1:].tolist()
-
-                # kolom yang dipilih untuk visualisasi
-                selected_column = st.selectbox("Pilih Wilayah", options)
-
-                # Create a temperature stripe plot using Plotly based on the selected column
-                def create_temperature_stripe(data, column):
-                    fig = px.imshow(
-                        [data[column]],
-                        labels={'x': 'Tahun', 'color': 'Anomali (°C)'},
-                        x=data['Tahun'].astype(str),
-                        color_continuous_scale='RdBu_r',
-                        aspect="auto"
-                    )
-                    fig.update_yaxes(showticklabels=False)  # Hide y-axis ticks
-                    
-                    fig.update_layout(
-                        coloraxis_colorbar=dict(tickformat='.2f', title="°C", x=1, y=0.5, len=0.8, thickness=10),
-                        xaxis={'side': 'bottom'},
-                        title={'text': f"Anomali Suhu Udara Tahunan di {selected_column}", 'x':0.45, 'y':0.95,
-                        'xanchor':'center', 'yanchor':'top',
-                        'font':{'size':18,'family':'Arial, sans-serif'}},
-                    width=1000,  # Set the width to 1000 pixels
-                    height=400,
-                    )
-                    fig.update_xaxes(tickangle=360)
-                    fig.update_traces(hovertemplate='Tahun: %{x}<br>Anomali: %{z:.2f}°C<extra></extra>')
-                    return fig
-
-                # Plot the temperature stripe based on the selected column
-                fig = create_temperature_stripe(data, selected_column)
-                st.plotly_chart(fig)
+tabs = st.tabs(['Download Data Reanalysis,'Visualisasi netCDF'])
 
 with tabs[0]:
-      # peta anomali, mondif, suhu bulanan
-            st.header("Peta Anomali Suhu Udara Per Bulan")
+     # Function to download and process data
+            def download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year, datdir):
+                # Create directory for the variable if it doesn't exist
+                os.makedirs(os.path.join(datdir, varname, resolution), exist_ok=True)
 
-            df4 = load_excel_data(file_path, sheet_name='GIS')
+                # Define the template URL based on the dataset and resolution
+                # dataname == 'CHIRPS'
+                if resolution == 'p05':
+                    template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p05/'
+                elif resolution == 'p25':
+                    template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p25/'
 
-            # Extract unique months from the 'Bulan' column
-            bulan_options = df4['Bulan'].unique()
+                # Loop through the years
+                for iy in range(start_year, end_year + 1):
+                    fname = f'chirps-v2.0.{iy}.days_{resolution}.nc'
 
-            # Selectbox for choosing month
-            selected_bulan = st.select_slider("Pilih Bulan", bulan_options)
+                    # Download the file
+                    link = template + fname
+                    st.info(f"Sedang mengunduh {fname}")
+                    st.warning('Pastikan tidak menutup/berpindah halaman ketika sedang mengunduh!')
+                    response = requests.get(link, stream=True)
+                    
+                    if response.status_code == 200:
+                        total_size = int(response.headers.get('content-length', 0))
+                        chunk_size = 1024
+                        progress_bar = st.progress(0)
+                        temp_file_path = tempfile.NamedTemporaryFile(delete=False).name
 
-            # Filter the DataFrame based on the selected month
-            filtered_df2 = df4[df4['Bulan'] == selected_bulan]
+                        try:
+                            # Write to the temporary file
+                            with open(temp_file_path, 'wb') as tmp_file:
+                                for data in response.iter_content(chunk_size):
+                                    tmp_file.write(data)
+                                    progress_bar.progress(tmp_file.tell() / total_size)
+                            
+                            progress_bar.empty()
+                            st.success(f"Memotong {fname} sesuai koordinat terpilih")
 
-            # kolom parameter dijadikan list pilihan
-            param = df4.columns[4:].tolist()
+                            # Process the file (slice to region of interest and save)
+                            with xr.open_dataarray(temp_file_path, decode_times=False) as data:
+                                data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
+                                sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
+                                final_path = os.path.join(datdir, varname, resolution, fname)
+                                sliced_data.to_netcdf(final_path)  # Save sliced data to final directory
+                                st.success(f"Berhasil mengunduh dan menyimpan {fname} ke {final_path}")
 
-            # visualisasi berdasarkan pilihan parameter
-            selected_param = st.selectbox("Pilih Kondisi Suhu Udara", param)
+                        except Exception as e:
+                            st.error(f"Kesalahan dalam memproses {fname}: {e}")
 
-            # Determine the color based on the selected parameter
-            if selected_param in ["Anomali Suhu Udara Rata-Rata", "Selisih Suhu Udara Rata-Rata"]:
-                # Set color to blue where selected_param is positive, and red otherwise
-                color_values = filtered_df2[selected_param].apply(lambda x: 'red' if x > 0 else 'blue')
-            elif selected_param == "Suhu Udara Rata-Rata":
-                # Set color to black for all values
-                color_values = 'black'
+                        finally:
+                            try:
+                                os.remove(temp_file_path)  # Clean up temporary file
+                            except Exception as e:
+                                st.error(f"Kesalahan dalam menghapus temporary file : {e}")
+                    else:
+                        st.error(f"Gagal mengunduh {fname} dari {link}")
 
-            # membuat peta
-            fig = go.Figure()
+            # Streamlit app
+            def main():
+                st.header('Download Data Curah Hujan Reanalysis Otomatis')
 
-            # Add scatter trace
-            fig.add_trace(go.Scattermapbox(
-                lat=filtered_df2['Lat'],
-                lon=filtered_df2['Lon'],
-                mode='markers+text',
-                marker=go.scattermapbox.Marker(
-                    size=16,
-                    color=color_values,
-                    opacity=1
-                ),
-                text=filtered_df2[selected_param].apply(lambda x: f'{x:.1f}'),
-                textposition="top center",
-                textfont=dict(color='black', size=11),
-                hoverinfo='text',
-                hovertext=filtered_df2['Stasiun'] + '<br>' + selected_param + ': ' + filtered_df2[selected_param].apply(lambda x: f'{x:.1f}') + ' °C'
-            ))
+                # Set the dataset and variable
+                varname = 'Curah Hujan'
+                
+                # Resolution selection for CHIRPS dataset
+                resolution = st.selectbox('Pilih Resolusi', ['p05', 'p25'])
 
-            # Manually set the center of the map
-            center_lat = -2  # Replace with your desired latitude
-            center_lon = 118  # Replace with your desired longitude
+                with st.expander(":blue-background[**Keterangan :**]"):
+                    st.caption("*Dataset yang digunakan :* **CHIRPS.**")
+                    st.caption("**Deskripsi :** *Data Curah Hujan Harian Global.*")
+                    st.caption(("**p05 :** *Resolusi Tinggi 5 x 5 km (ukuran file 1-1,2 GB).*"))
+                    st.caption(("**p25 :** *Resolusi Menengah 25 x 25 km (ukuran file 60-70 MB).*"))
+                
+                longitude = st.slider('Pilih Rentang Bujur', min_value=90.0, max_value=145.0, value=(95.0, 141.45), step=0.1)
+                latitude = st.slider('Pilih Rentang Lintang', min_value=-12.0, max_value=8.0, value=(-11.08, 6.0), step=0.1)
+                
+                with st.expander(":blue-background[**Keterangan :**]"):
+                        st.caption("*Defalut Rentang wilayah yang digunakan adalah Lintang dan Bujur di wilayah Indonesia.*")
+                        st.caption("*Data yang akan tersimpan akan dipotong sesuai pilihan Lintang dan Bujur yang diinginkan.*")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    start_year = st.number_input('Tahun Awal', min_value=1981, max_value=2024, value=1981, step=1)
+                with col2:
+                    end_year = st.number_input('Tahun Akhir', min_value=1981, max_value=2024, value=1981, step=1)
+                
+                with st.expander(":blue-background[**Keterangan :**]"):
+                        st.caption("**Deskripsi :** *Data Curah Hujan dimulai dari tahun 1981 s.d 2024.*")
+                        st.caption("*Data akan didownload per tahun, bila ingin mendownload 1 tahun saja maka tahun awal dan tahun akhir disamakan.*")
+                
+                # Get the user's Downloads folder
+                home_dir = os.path.expanduser("~")
+                default_datdir = os.path.join(home_dir, "Downloads")
+                datdir = st.text_input('Simpan file', default_datdir)
 
-            # Update layout
-            fig.update_layout(title=f"Peta Sebaran {selected_param} Bulan {selected_bulan} 2024",
-                            title_font=dict(size=18),  # Set the font size of the title
-                            title_x=0.15,  # Set the x-position of the title
-                            title_y=0.9,
-                            mapbox_style="open-street-map",
-                            mapbox_zoom=3.4,
-                            mapbox_center={"lat": center_lat, "lon": center_lon},
-                            # margin={"r":0,"t":0,"l":0,"b":0},  # margins peta dengan konten atas,bawah,kiri,kanan
-                            margin={"b":0},
-                            height=400,
-                            width=900,
-                            showlegend=False)
+                # Download button
+                if st.button('Download Data'):
+                    if not os.path.isdir(datdir):
+                        st.error(f"Direktori {datdir} tidak ada.")
+                    else:
+                        download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year, datdir)
 
-            # Display the Plotly map in Streamlit
-            st.plotly_chart(fig)
-
-            st.caption(":blue-background[Keterangan :]")
-            st.caption(('''
-                        **Anomali Suhu Udara Rata-Rata :**
-                        *Selisih Suhu Udara Rata-Rata Bulan Terpilih dengan Normal 1991-2020.*'''))
-            st.caption(('''
-                        **Selisih Suhu Udara Rata-Rata :**
-                        *Selisih Suhu Udara Rata-Rata Bulan Terpilih dengan Bulan Sebelumnya.*'''))
-
-with tabs[2]:
+            if __name__ == '__main__':
+                main()
+                    
+with tabs[1]:
     # File uploader for custom NetCDF files
             st.header("Visualisasi Data Reanalysis dan Proyeksi")
             # uploader untuk file netCDF
