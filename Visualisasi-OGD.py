@@ -42,35 +42,35 @@ with tabs[0]:
                     temp_file_path = tempfile.NamedTemporaryFile(delete=False).name
         
                     try:
-                        with open(temp_file_path, 'wb') as tmp_file:
-                            for data in response.iter_content(chunk_size):
-                                tmp_file.write(data)
-                                progress_bar.progress(tmp_file.tell() / total_size)
+                            with open(temp_file_path, 'wb') as tmp_file:
+                                for data in response.iter_content(chunk_size):
+                                    tmp_file.write(data)
+                                    progress_bar.progress(tmp_file.tell() / total_size)
                         
-                        progress_bar.empty()
-                        st.success(f"Memotong {fname} sesuai koordinat terpilih")
-        
-                        with xr.open_dataset(temp_file_path, decode_times=False) as data:
-                            data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
-                            sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
-        
-                            final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}.nc"
-                            sliced_data.to_netcdf(final_tmp_path)  # Save sliced data to a temporary file
-                            st.success(f"Berhasil mengunduh {fname} dari server")
-        
-                            # Save the file information to session state
-                            if 'download_files' not in st.session_state:
-                                st.session_state['download_files'] = []
-                            st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
-        
-                    except Exception as e:
-                        st.error(f"Kesalahan dalam memproses {fname}: {e}")
-        
-                    finally:
-                        try:
-                            os.remove(temp_file_path)
+                            progress_bar.empty()
+                            st.success(f"Memotong {fname} sesuai koordinat terpilih")
+                        
+                            with xr.open_dataset(temp_file_path, decode_times=False) as data:
+                                data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
+                                sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
+                        
+                                final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}.nc"
+                                sliced_data.to_netcdf(final_tmp_path)  # Save sliced data to a temporary file
+                                st.success(f"Berhasil mengunduh {fname} dari server")
+                        
+                                # Save the file information to session state
+                                if 'download_files' not in st.session_state:
+                                    st.session_state['download_files'] = []
+                                st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
+                        
                         except Exception as e:
-                            st.error(f"Kesalahan dalam menghapus temporary file: {e}")
+                            st.error(f"Kesalahan dalam memproses {fname}: {e}")
+                        
+                        finally:
+                            try:
+                                os.remove(temp_file_path)  # Hapus file sementara setelah digunakan
+                            except Exception as e:
+                                st.error(f"Kesalahan dalam menghapus temporary file: {e}")
                 else:
                     st.error(f"Gagal mengunduh {fname} dari {link}")
         
