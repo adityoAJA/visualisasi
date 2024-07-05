@@ -138,7 +138,6 @@ with tabs[1]:
                 file_content = uploaded_file.read()
 
                 # Load the data from the buffer with caching to avoid reloading on every interaction
-                @st.cache_data
                 def load_data(file_content):
                     with xr.open_dataset(io.BytesIO(file_content), engine='netcdf4') as data:
                         return data.load()
