@@ -83,17 +83,18 @@ with tabs[0]:
             else:
                 st.error(f"Gagal mengunduh {fname} dari {link}")
 
-    # Function to generate download buttons for processed files
-    def display_download_buttons():
+    # Function to generate download button for the latest processed file
+    def display_latest_download_button():
         if 'download_files' in st.session_state and st.session_state['download_files']:
+            latest_file_path, latest_file_name = st.session_state['download_files'][-1]
             with st.expander(':green-background[**Simpan file :**]'):
                 st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
-            for index, (file_path, file_name) in enumerate(st.session_state['download_files']):
+            with open(latest_file_path, "rb") as file:
                 st.download_button(
-                    label=f"Unduh {file_name}",
-                    data=file_path,
-                    file_name=file_name,
-                    key=f"download_button_{index}"  # Assign unique key based on index or file name
+                    label=f"Unduh {latest_file_name}",
+                    data=file,
+                    file_name=latest_file_name,
+                    key=f"download_button_latest"  # Unique key for the latest file
                 )
 
     # Streamlit app
@@ -129,8 +130,8 @@ with tabs[0]:
         if st.button('Download Data'):
             download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
 
-        # Display download buttons for available files
-        display_download_buttons()
+        # Display download button for the latest file
+        display_latest_download_button()
 
     if __name__ == '__main__':
         main()
