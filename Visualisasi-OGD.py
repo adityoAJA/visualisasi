@@ -27,7 +27,7 @@ with tabs[0]:
                 template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p05/'
             elif resolution == 'p25':
                 template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p25/'
-        
+            
             for iy in range(start_year, end_year + 1):
                 fname = f'chirps-v2.0.{iy}.days_{resolution}.nc'
                 link = template + fname
@@ -51,18 +51,17 @@ with tabs[0]:
                         st.success(f"Memotong {fname} sesuai koordinat terpilih")
         
                         with xr.open_dataset(temp_file_path, decode_times=False) as data:
-                                data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
-                                sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
-                            
-                            with tempfile.NamedTemporaryFile(delete=False, suffix=".nc") as final_tmp:
-                                sliced_data.to_netcdf(final_tmp.name)  # Save sliced data to a temporary file
-                                final_tmp_path = final_tmp.name
-                                st.success(f"Berhasil mengunduh {fname} dari server")
+                            data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
+                            sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
         
-                                # Save the file information to session state
-                                if 'download_files' not in st.session_state:
-                                    st.session_state['download_files'] = []
-                                st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
+                            final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}.nc"
+                            sliced_data.to_netcdf(final_tmp_path)  # Save sliced data to a temporary file
+                            st.success(f"Berhasil mengunduh {fname} dari server")
+        
+                            # Save the file information to session state
+                            if 'download_files' not in st.session_state:
+                                st.session_state['download_files'] = []
+                            st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
         
                     except Exception as e:
                         st.error(f"Kesalahan dalam memproses {fname}: {e}")
