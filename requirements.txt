@@ -6,4 +6,3 @@ netcdf4
 openpyxl
 h5netcdf
 h5py
-hdf5
