@@ -5,3 +5,5 @@ plotly
 netcdf4
 openpyxl
 h5netcdf
+h5py
+netCDF4
