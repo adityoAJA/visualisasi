@@ -21,12 +21,8 @@ tabs = st.tabs(['Download Data Reanalysis', 'Visualisasi netCDF'])
 with tabs[0]:
     # Function to download and process data
     def download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year):
-        # Define the directory for saving files
-        home_dir = os.path.expanduser("~")
-        datdir = os.path.join(home_dir, "Downloads")
-    
-        # Create directory for the variable if it doesn't exist
-        os.makedirs(os.path.join(datdir, varname, resolution), exist_ok=True)
+        # Create a temporary directory for saving files
+        temp_dir = tempfile.TemporaryDirectory()
     
         # Define the template URL based on the dataset and resolution
         if resolution == 'p05':
@@ -64,9 +60,13 @@ with tabs[0]:
                     with xr.open_dataarray(temp_file_path, decode_times=False) as data:
                         data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
                         sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
-                        final_path = os.path.join(datdir, varname, resolution, fname)
-                        sliced_data.to_netcdf(final_path)  # Save sliced data to final directory
-                        st.success(f"Berhasil mengunduh dan menyimpan {fname} ke {final_path}")
+                        final_path = os.path.join(temp_dir.name, fname)
+                        sliced_data.to_netcdf(final_path)  # Save sliced data to temporary directory
+                        st.success(f"Berhasil mengunduh dan menyimpan {fname}")
+    
+                        # Provide a download link for the user
+                        with open(final_path, 'rb') as f:
+                            st.download_button(label=f"Unduh {fname}", data=f, file_name=fname)
     
                 except Exception as e:
                     st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -118,7 +118,7 @@ with tabs[0]:
     
     if __name__ == '__main__':
         main()
-
+    
 with tabs[1]:
     # File uploader for custom NetCDF files
     st.header("Visualisasi Data Reanalysis dan Proyeksi")
