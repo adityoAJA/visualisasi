@@ -299,11 +299,11 @@ def show_precipitation_map(data):
     lon_idx = np.abs(lon - selected_lon).argmin()
     lat_idx = np.abs(lat - selected_lat).argmin()
 
-    pr_timeseries = precip[:, lat_idx, lon_idx].values
+    pr_timeseries = pr[:, lat_idx, lon_idx].values
 
     # Convert time series to pandas DataFrame for easier plotting with Plotly Express
     df = pd.DataFrame({
-        'Rentang Waktu': precip.time.values,
+        'Rentang Waktu': pr.time.values,
         'Curah Hujan (mm/hari)': pr_timeseries
     })
 
