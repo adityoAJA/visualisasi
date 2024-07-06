@@ -21,43 +21,44 @@ st.title('Dashboard Visualisasi Interaktif')
 tabs = st.tabs(['Download Data Reanalysis', 'Visualisasi netCDF'])
 
 with tabs[0]:
+    st.header('Download Data Curah Hujan Reanalysis Otomatis')
     # Function to download and process data
     def download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year):
         # Create a temporary directory for saving files
         temp_dir = tempfile.TemporaryDirectory()
-    
+
         # Define the template URL based on the dataset and resolution
         if resolution == 'p05':
             template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p05/'
         elif resolution == 'p25':
             template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p25/'
-    
+
         # Loop through the years
         for iy in range(start_year, end_year + 1):
             fname = f'chirps-v2.0.{iy}.days_{resolution}.nc'
-    
+
             # Download the file
             link = template + fname
             st.info(f"Sedang mengunduh {fname}")
             st.warning('Pastikan tidak menutup/berpindah halaman ketika sedang mengunduh!')
             response = requests.get(link, stream=True)
-    
+
             if response.status_code == 200:
                 total_size = int(response.headers.get('content-length', 0))
                 chunk_size = 1024
                 progress_bar = st.progress(0)
                 temp_file_path = tempfile.NamedTemporaryFile(delete=False).name
-    
+
                 try:
                     # Write to the temporary file
                     with open(temp_file_path, 'wb') as tmp_file:
                         for data in response.iter_content(chunk_size):
                             tmp_file.write(data)
                             progress_bar.progress(tmp_file.tell() / total_size)
-    
+
                     progress_bar.empty()
                     st.success(f"Memotong {fname} sesuai koordinat terpilih")
-    
+
                     # Process the file (slice to region of interest and save)
                     with xr.open_dataarray(temp_file_path, decode_times=False) as data:
                         data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
@@ -65,14 +66,14 @@ with tabs[0]:
                         final_path = os.path.join(temp_dir.name, fname)
                         sliced_data.to_netcdf(final_path)  # Save sliced data to temporary directory
                         st.success(f"Berhasil mengunduh dan menyimpan {fname}")
-    
+
                         # Provide a download link for the user
                         with open(final_path, 'rb') as f:
                             st.download_button(label=f"Unduh {fname}", data=f, file_name=fname)
-    
+
                 except Exception as e:
                     st.error(f"Kesalahan dalam memproses {fname}: {e}")
-    
+
                 finally:
                     try:
                         os.remove(temp_file_path)  # Clean up temporary file
@@ -80,44 +81,42 @@ with tabs[0]:
                         st.error(f"Kesalahan dalam menghapus temporary file: {e}")
             else:
                 st.error(f"Gagal mengunduh {fname} dari {link}")
-    
+
     # Streamlit app
     def main():
-        st.header('Download Data Curah Hujan Reanalysis Otomatis')
-    
         # Set the dataset and variable
         varname = 'Curah Hujan'
-        
+
         # Resolution selection for CHIRPS dataset
         resolution = st.selectbox('Pilih Resolusi', ['p05', 'p25'])
-    
+
         with st.expander(":blue-background[**Keterangan :**]"):
             st.caption("*Dataset yang digunakan :* **CHIRPS.**")
             st.caption("**Deskripsi :** *Data Curah Hujan Harian Global.*")
             st.caption(("**p05 :** *Resolusi Tinggi 5 x 5 km (ukuran file 1-1,2 GB).*"))
             st.caption(("**p25 :** *Resolusi Menengah 25 x 25 km (ukuran file 60-70 MB).*"))
-        
+
         longitude = st.slider('Pilih Rentang Bujur', min_value=90.0, max_value=145.0, value=(95.0, 141.45), step=0.1)
         latitude = st.slider('Pilih Rentang Lintang', min_value=-12.0, max_value=8.0, value=(-11.08, 6.0), step=0.1)
-        
+
         with st.expander(":blue-background[**Keterangan :**]"):
             st.caption("*Defalut Rentang wilayah yang digunakan adalah Lintang dan Bujur di wilayah Indonesia.*")
             st.caption("*Data yang akan tersimpan akan dipotong sesuai pilihan Lintang dan Bujur yang diinginkan.*")
-        
+
         col1, col2 = st.columns(2)
         with col1:
             start_year = st.number_input('Tahun Awal', min_value=1981, max_value=2024, value=1981, step=1)
         with col2:
             end_year = st.number_input('Tahun Akhir', min_value=1981, max_value=2024, value=1981, step=1)
-        
+
         with st.expander(":blue-background[**Keterangan :**]"):
             st.caption("**Deskripsi :** *Data Curah Hujan dimulai dari tahun 1981 s.d 2024.*")
             st.caption("*Data akan didownload per tahun, bila ingin mendownload 1 tahun saja maka tahun awal dan tahun akhir disamakan.*")
-        
+
         # Download button
         if st.button('Download Data'):
             download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
-    
+
     if __name__ == '__main__':
         main()
     
