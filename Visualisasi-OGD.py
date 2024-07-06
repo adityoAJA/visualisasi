@@ -236,9 +236,10 @@ def show_precipitation_map(data):
     
     # Display the Plotly map in Streamlit
     st.plotly_chart(fig_map)
+    st.divider()
 
     # Calculate precipitation category counts for the pie chart
-    precip_counts = np.histogram(precip_selected.values.flatten(), bins=precip_ranges)[0]
+    precip_counts = np.histogram(pr_selected.values.flatten(), bins=precip_ranges)[0]
 
     fig_pie = go.Figure(data=[go.Pie(
         labels=precip_labels,
