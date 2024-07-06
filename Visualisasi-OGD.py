@@ -129,70 +129,113 @@ def load_data(file_content):
 
 # Menampilkan peta curah hujan
 def show_precipitation_map(data):
-    # Menentukan variabel curah hujan
+    # Determine the precipitation variable name ('precip' or 'pr')
     if 'precip' in data:
-        precip_var = 'precip'
+    	pr_var = 'precip'
+    	lat_var = 'latitude'
+    	lon_var = 'longitude'
+    	name_var = 'Reanalysis'
     elif 'pr' in data:
-        precip_var = 'pr'
+    	pr_var = 'pr'
+    	lat_var = 'lat'
+    	lon_var = 'lon'
+    	name_var = 'Proyeksi'
     else:
-        st.error("Tidak dapat menemukan variabel curah hujan yang sesuai dalam dataset.")
-        return
-
-    # Mengambil data latitude, longitude, dan curah hujan
-    lat = data['latitude'].values
-    lon = data['longitude'].values
-    precip = data[precip_var]
-
-    # Menghitung jumlah bulanan curah hujan
-    precip_monthly_sum = precip.resample(time='1MS').sum(dim='time')
-
-    # Membuat list bulan yang tersedia
-    available_months = precip_monthly_sum['time'].dt.strftime('%B %Y').values
-
-    # Memilih bulan yang akan ditampilkan
+    	st.error("Tidak ada variabel yang sesuai kriteria dalam file netCDF anda.")
+    	st.stop()
+    
+    # Extract necessary variables
+    lat = data[lat_var].values
+    lon = data[lon_var].values
+    pr = data[pr_var]
+    
+    # If pr_var is 'pr', convert precipitation values to millimeters per day
+    if pr_var == 'pr':
+    	pr *= 86400
+    
+    # Compute monthly sums along the time dimension
+    pr_monthly_sum = pr.resample(time='1MS').sum(dim='time')
+    
+    # membuat list bulan
+    available_months = pr_monthly_sum['time'].dt.strftime('%B %Y').values
+    
+    # memilih bulan yang akan ditampilkan
     selected_month = st.selectbox('Pilih Bulan', available_months)
-
-    # Memilih data curah hujan untuk bulan yang dipilih
-    precip_selected = precip_monthly_sum.sel(time=selected_month)
-
-    # Menghitung kategori curah hujan dan mempersiapkan warna untuk plot
+    
+    # Select the precipitation data for the chosen month
+    pr_selected = pr_monthly_sum.sel(time=selected_month)
+    
+    # # If pr_var is 'pr', convert precipitation values to millimeters per day
+    # if pr_var == 'pr':
+    #     pr_selected *= 86400
+    
+    # Define precipitation ranges and labels
     precip_ranges = [-np.inf, 50, 150, 300, 500, 750, np.inf]
     precip_labels = ['<50 mm', '50-150 mm', '150-300 mm', '300-500 mm', '500-750 mm', '>750 mm']
-    precip_categories = np.digitize(precip_selected.values.flatten(), bins=precip_ranges) - 1
+    
+    # Flatten the data for plotting
+    lat_flat = lat.repeat(len(lon))
+    lon_flat = np.tile(lon, len(lat))
+    pr_flat = pr_selected.values.flatten()
+    
+    # Filter out NaN and non-positive values
+    valid_mask = ~np.isnan(pr_flat) & (pr_flat > 0)
+    lat_valid = lat_flat[valid_mask]
+    lon_valid = lon_flat[valid_mask]
+    pr_valid = pr_flat[valid_mask]
+    
+    # Digitize the precipitation data to categorize them
+    pr_categories = np.digitize(pr_valid, bins=precip_ranges) - 1
     colors = px.colors.sequential.RdBu[::2][:len(precip_ranges)]
-
-    # Membuat plot peta menggunakan Plotly
-    fig = go.Figure(go.Scattermapbox(
-        lat=lat.flatten(),
-        lon=lon.flatten(),
-        mode='markers',
-        marker=dict(
-            size=8,
-            color=precip_categories,
-            colorscale=colors,
-            colorbar=dict(
-                title='Curah Hujan (mm)',
-                tickvals=np.arange(len(precip_ranges) - 1),
-                ticktext=precip_labels
-            )
-        ),
-        text=f'Curah Hujan: {precip_selected.values.flatten()} mm',
-        hoverinfo='text'
+    
+    # Create a Plotly figure
+    fig_map = go.Figure()
+    
+    # Add scatter plot trace
+    fig_map.add_trace(go.Scattermapbox(
+    	lat=lat_valid,
+    	lon=lon_valid,
+    	mode='markers',
+    	marker=go.scattermapbox.Marker(
+    		size=6,
+    		color=pr_categories,
+    		colorscale=colors,
+    		cmin=0,
+    		cmax=len(precip_ranges) - 1,
+    		colorbar=dict(
+    			title='Curah Hujan (mm)',
+    			orientation='h',
+    			x=0.5,
+    			y=-0.15,
+    			len=0.9,
+    			thickness=15,
+    			tickvals=np.arange(1, len(precip_ranges) - 1),
+    			ticktext=precip_ranges[1:]
+    		)
+    	),
+    	text=[f'Lintang: {lat}<br>Bujur: {lon}<br>Curah Hujan: {pr:.3f}' 
+    		for pr, lat, lon in zip(pr_valid, lat_valid, lon_valid)],
+    	hoverinfo='text'
     ))
-
-    # Mengatur layout peta menggunakan Mapbox
-    fig.update_layout(
-        mapbox_style="open-street-map",
-        mapbox_center={"lat": np.mean(lat), "lon": np.mean(lon)},
-        mapbox_zoom=3.5,
-        margin={"r": 0, "t": 0, "l": 0, "b": 0},
-        width=1000,
-        height=600,
-        title=f'Peta Curah Hujan Bulanan Periode {selected_month}'
+    
+    # Update layout with Mapbox for basemap
+    fig_map.update_layout(
+    	mapbox=dict(
+    		style="open-street-map",
+    		center={"lat": float(np.mean(lat)), "lon": float(np.mean(lon))},
+    		zoom=3.5,
+    	),
+    	width=1000,
+    	height=600,
+    	title={'text': f'Peta {name_var} Curah Hujan Bulanan Periode {selected_month}',
+    			   'x': 0.5, 'y': 0.9, 'xanchor': 'center', 'yanchor': 'top',
+    				'font':{'size':20,'family':'Arial, sans-serif'}},
+    	autosize=True,
+    	margin={"r": 0, "t": 100, "l": 0, "b": 0}
     )
-
-    # Menampilkan plot peta menggunakan Streamlit
-    st.plotly_chart(fig)
+    
+    # Display the Plotly map in Streamlit
+    st.plotly_chart(fig_map)
 
     # Calculate precipitation category counts for the pie chart
     precip_counts = np.histogram(precip_selected.values.flatten(), bins=precip_ranges)[0]
