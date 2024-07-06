@@ -6,4 +6,3 @@ h5py
 xarray
 h5netcdf
 netcdf4
-scipy
