@@ -134,7 +134,7 @@ if uploaded_file is not None:
 	# Load the data from the buffer with caching to avoid reloading on every interaction
 	@st.cache(allow_output_mutation=True)
 	def load_data(file_content):
-		with xr.open_dataset(io.BytesIO(file_content), engine='h5netcdf') as data:
+		with xr.open_dataset(io.BytesIO(file_content), engine='netcdf4') as data:
 			return data.load()
 
 	# Load the data
