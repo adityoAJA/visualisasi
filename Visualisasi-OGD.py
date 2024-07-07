@@ -134,6 +134,10 @@ def main():
         with st.expander(":blue-background[**Keterangan :**]"):
             st.caption("**Parameter :** *Tmax (suhu maksimum) dan Tmin (suhu minimum).*")
             st.caption("**Deskripsi :** *Dimulai dari tahun 1983 s.d 2016.*")
+
+    if st.button('Download Data'):
+            st.session_state['download_files'] = []  # Reset the session state for new downloads
+            download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
     
     # Display download buttons for available files
     if 'download_files' in st.session_state and st.session_state['download_files']:
