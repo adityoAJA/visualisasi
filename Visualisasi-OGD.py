@@ -8,7 +8,7 @@ import os
 st.set_page_config(
         page_title="Dashboard Adityo W",
         page_icon="🏠",
-        layout="wide",
+        layout="centered",
         initial_sidebar_state="expanded"
     )
 
