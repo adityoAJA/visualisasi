@@ -10,14 +10,15 @@ import os
 import tempfile
 
 st.set_page_config(
-    page_title="Dashboard Visualisasi Interaktif",
+    page_title="Dashboard Adityo W",
     page_icon="🏠",
     layout="centered",
-    initial_sidebar_state="expanded"
-)
+    initial_sidebar_state="expanded")
 
-st.title('Dashboard Visualisasi Interaktif')
-
+# Initialize session state for downloads
+if 'downloaded_files' not in st.session_state:
+    st.session_state['downloaded_files'] = []
+    
 # Function to download and process data
 def download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year):
     # Create a temporary directory for saving files
@@ -70,9 +71,8 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                     sliced_data.to_netcdf(final_path)  # Save sliced data to final directory
                     st.success(f"Berhasil mengunduh dan menyimpan {fname} ke {final_path}")
 
-                    # Provide a download link for the user
-                    with open(final_path, 'rb') as f:
-                        st.download_button(label=f"Unduh {fname}", data=f, file_name=fname)
+                    # Add the file to session state for download links
+                    st.session_state.downloaded_files.append(final_path)
 
             except Exception as e:
                 st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -140,6 +140,11 @@ def main():
     # Download button
     if st.button('Download Data'):
         download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year)
+
+    # Display download buttons for each downloaded file
+    for file_path in st.session_state['downloaded_files']:
+        with open(file_path, 'rb') as f:
+            st.download_button(label=f"Unduh {os.path.basename(file_path)}", data=f, file_name=os.path.basename(file_path))
 
 if __name__ == '__main__':
     main()
