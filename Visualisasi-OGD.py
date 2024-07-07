@@ -44,7 +44,7 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                         progress_bar.progress(tmp_file.tell() / total_size)
                 
                 progress_bar.empty()
-                st.info(f"Memotong {fname} sesuai koordinat terpilih")
+                st.success(f"Memotong {fname} sesuai koordinat terpilih")
 
                 # Process the file (slice to region of interest and save)
                 with xr.open_dataarray(temp_file_path, decode_times=False) as data:
