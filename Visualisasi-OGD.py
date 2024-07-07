@@ -7,8 +7,6 @@ import os
 
 # Function to download and process data
 def download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year):
-    # List to hold download buttons
-    download_buttons = []
 
     # Define the template URL based on the dataset and resolution
     if dataname == 'CHIRTS':
@@ -58,9 +56,10 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                         sliced_data.to_netcdf(tmp_file.name)
                         file_path = tmp_file.name
 
-                # Create a download button for this file
-                download_button = st.download_button(label=f"Unduh {fname}", data=file_path, file_name=fname, key=f"download_button_{iy}")
-                download_buttons.append(download_button)
+                    # Save the file information to session state
+                    if 'download_files' not in st.session_state:
+                        st.session_state['download_files'] = []
+                    st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc}"))
 
             except Exception as e:
                 st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -72,12 +71,6 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                     st.error(f"Kesalahan dalam menghapus temporary file: {e}")
         else:
             st.error(f"Gagal mengunduh {fname} dari {link}")
-
-    # Display all download buttons after the loop completes
-    if download_buttons:
-        st.header('Unduh Data')
-        for button in download_buttons:
-            button
 
 # Streamlit app
 def main():
@@ -131,9 +124,22 @@ def main():
             st.caption("**Parameter :** *Tmax (suhu maksimum) dan Tmin (suhu minimum).*")
             st.caption("**Deskripsi :** *Dimulai dari tahun 1983 s.d 2016.*")
     
-    # Download button
-    if st.button('Download Data'):
-        download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year)
+   if st.button('Download Data'):
+        st.session_state['download_files'] = []  # Reset the session state for new downloads
+        download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
+
+    # Display download buttons for available files
+    if 'download_files' in st.session_state and st.session_state['download_files']:
+        with st.expander(':green-background[**Simpan file :**]'):
+            st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
+        for idx, (file_path, file_name) in enumerate(st.session_state['download_files']):
+            with open(file_path, "rb") as file:
+                st.download_button(
+                    label=f"Unduh {file_name}",
+                    data=file,
+                    file_name=file_name,
+                    key=f"download_button_{idx}"  # Unique key for each file
+                )
 
 if __name__ == '__main__':
     main()
