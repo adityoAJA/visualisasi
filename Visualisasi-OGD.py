@@ -1,28 +1,16 @@
 import streamlit as st
-import plotly.express as px
-import plotly.graph_objects as go
-import pandas as pd
-import xarray as xr
-import numpy as np
-import io
 import requests
-import os
 import tempfile
-
-st.set_page_config(
-    page_title="Dashboard Adityo W",
-    page_icon="🏠",
-    layout="centered",
-    initial_sidebar_state="expanded"
-)
+import xarray as xr
+import pandas as pd
+import os
 
 # Function to download and process data
 def download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year):
-    # Create a temporary directory for saving files
-    temp_dir = tempfile.TemporaryDirectory()
-
     # Define the template URL based on the dataset and resolution
-    if dataname == 'CHIRPS':
+    if dataname == 'CHIRTS':
+        template = f'https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/global_netcdf_p05/{varname}/'
+    elif dataname == 'CHIRPS':
         if resolution == 'p05':
             template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p05/'
         elif resolution == 'p25':
@@ -31,7 +19,10 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
     # Loop through the years
     for iy in range(start_year, end_year + 1):
         # Construct the filename
-        fname = f'chirps-v2.0.{iy}.days_{resolution}.nc'
+        if dataname == 'CHIRTS':
+            fname = f'{varname}.{iy}.nc'
+        elif dataname == 'CHIRPS':
+            fname = f'chirps-v2.0.{iy}.days_{resolution}.nc'
 
         # Download the file
         link = template + fname
@@ -39,37 +30,30 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
         response = requests.get(link, stream=True)
                     
         if response.status_code == 200:
-                total_size = int(response.headers.get('content-length', 0))
-                chunk_size = 1024
-                progress_bar = st.progress(0)
+            total_size = int(response.headers.get('content-length', 0))
+            chunk_size = 1024
+            progress_bar = st.progress(0)
+            temp_file_path = tempfile.NamedTemporaryFile(delete=False).name
 
-                try:
-                    # Create a temporary file
-                    temp_file_fd, temp_file_path = tempfile.mkstemp(suffix='.nc', prefix=f'{varname}_{iy}_{resolution}_', dir='/tmp')
+            try:
+                # Write to the temporary file
+                with open(temp_file_path, 'wb') as tmp_file:
+                    for data in response.iter_content(chunk_size):
+                        tmp_file.write(data)
+                        progress_bar.progress(tmp_file.tell() / total_size)
+                
+                progress_bar.empty()
+                st.success(f"Memotong {fname} sesuai koordinat terpilih")
 
-                    with os.fdopen(temp_file_fd, 'wb') as tmp_file:
-                        for data in response.iter_content(chunk_size):
-                            tmp_file.write(data)
-                            progress_bar.progress(tmp_file.tell() / total_size)
+                # Process the file (slice to region of interest and save)
+                with xr.open_dataarray(temp_file_path, decode_times=False) as data:
+                    data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
+                    sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
 
-                    progress_bar.empty()
-                    st.success(f"Berhasil mengunduh {fname} dari server")
-
-                    # Open the downloaded NetCDF file using xarray directly
-                    try:
-                        data = xr.open_dataset(temp_file_path, decode_times=False)
-                        data['time'] = pd.date_range(start=f'{iy}-01-01', end=f'{iy}-12-31', periods=len(data.time))
-                        sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
-
-                        # Save sliced data to a temporary file
-                        final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}_sliced.nc"
-                        sliced_data.to_netcdf(final_tmp_path)
-                        st.success(f"Memotong dan menyimpan {fname} sesuai koordinat terpilih")
-
-                        # Save the file information to session state
-                        if 'download_files' not in st.session_state:
-                            st.session_state['download_files'] = []
-                        st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
+                    # Provide a download link for the user to save the data
+                    with tempfile.NamedTemporaryFile(suffix='.nc', delete=False) as tmp_file:
+                        sliced_data.to_netcdf(tmp_file.name)  # Save sliced data to temporary file
+                        st.download_button(label=f"Unduh {fname}", data=tmp_file.name, file_name=fname)
 
             except Exception as e:
                 st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -106,8 +90,12 @@ def main():
         # Resolution selection for CHIRPS dataset
         resolution = st.selectbox('Pilih Resolusi', ['p05', 'p25'])
     else:
-        st.error("Dataset untuk Tmax dan Tmin belum didukung dalam contoh ini.")
-        return
+        dataname = 'CHIRTS'
+        with st.expander(":blue-background[**Keterangan :**]"):
+            st.caption(f"*Dataset yang digunakan :* **{dataname}.**")
+            st.caption("**Deskripsi :** *Data Suhu Udara (Maksimum atau Minimum) Harian Global.*")
+            st.caption("**Resolusi :** *5 x 5 km (ukuran file 25 GB).*")
+        resolution = None  # No resolution selection for CHIRTS dataset
 
     longitude = st.slider('Pilih Rentang Bujur', min_value=90.0, max_value=145.0, value=(105.0, 125.0), step=0.1)
     latitude = st.slider('Pilih Rentang Lintang', min_value=-12.0, max_value=8.0, value=(-5.0, 7.0), step=0.1)
@@ -121,18 +109,18 @@ def main():
     with col2:
         end_year = st.number_input('Tahun Akhir', min_value=1981, max_value=2024, value=2010, step=1)
 
-    # Display download buttons for available files
-    if 'download_files' in st.session_state and st.session_state['download_files']:
-        with st.expander(':green-background[**Simpan file :**]'):
-            st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
-        for idx, (file_path, file_name) in enumerate(st.session_state['download_files']):
-            with open(file_path, "rb") as file:
-                st.download_button(
-                        label=f"Unduh {file_name}",
-                        data=file,
-                        file_name=file_name,
-                        key=f"download_button_{idx}"  # Unique key for each file
-                    )
+    if varname == 'Precipitation':
+        with st.expander(":blue-background[**Keterangan :**]"):
+            st.caption("**Parameter :** *Curah Hujan (Precipitation).*")
+            st.caption("**Deskripsi :** *Dimulai dari tahun 1981 s.d 2024.*")
+    else:
+        with st.expander(":blue-background[**Keterangan :**]"):
+            st.caption("**Parameter :** *Tmax (suhu maksimum) dan Tmin (suhu minimum).*")
+            st.caption("**Deskripsi :** *Dimulai dari tahun 1983 s.d 2016.*")
+    
+    # Download button
+    if st.button('Download Data'):
+        download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year)
 
 if __name__ == '__main__':
     main()
