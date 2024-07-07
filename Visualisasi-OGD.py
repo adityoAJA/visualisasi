@@ -59,7 +59,7 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                     # Save the file information to session state
                     if 'download_files' not in st.session_state:
                         st.session_state['download_files'] = []
-                    st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc}"))
+                    st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
 
             except Exception as e:
                 st.error(f"Kesalahan dalam memproses {fname}: {e}")
