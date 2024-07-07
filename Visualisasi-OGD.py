@@ -137,7 +137,8 @@ def main():
 
     if st.button('Download Data'):
             st.session_state['download_files'] = []  # Reset the session state for new downloads
-            download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
+            # Corrected function call with all required arguments
+            download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year)
     
     # Display download buttons for available files
     if 'download_files' in st.session_state and st.session_state['download_files']:
