@@ -67,10 +67,16 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                     sliced_data.to_netcdf(final_path)  # Save sliced data to final directory
                     st.success(f"Berhasil mengunduh dan menyimpan {fname} ke {final_path}")
 
-                    # Save the file information to session state
-                    if 'download_files' not in st.session_state:
-                        st.session_state['download_files'] = []
-                    st.session_state['download_files'].append((final_path, f"{varname}_{iy}_{resolution}.nc"))
+                    # Display download button for the current file
+                    with st.expander(':green-background[**Simpan file :**]'):
+                        st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
+                    with open(final_tmp_path, "rb") as file:
+                        st.download_button(
+                                label=f"Unduh {varname}_{iy}_{resolution}.nc",
+                                data=file,
+                                file_name=f"{varname}_{iy}_{resolution}.nc",
+                                key=f"download_button_{iy}"  # Unique key for each file
+                            )
 
             except Exception as e:
                 st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -136,22 +142,7 @@ def main():
             st.caption("**Deskripsi :** *Dimulai dari tahun 1983 s.d 2016.*")
 
     if st.button('Download Data'):
-            st.session_state['download_files'] = []  # Reset the session state for new downloads
-            # Corrected function call with all required arguments
-            download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year)
-    
-    # Display download buttons for available files
-    if 'download_files' in st.session_state and st.session_state['download_files']:
-        with st.expander(':green-background[**Simpan file :**]'):
-            st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
-        for idx, (file_path, file_name) in enumerate(st.session_state['download_files']):
-            with open(file_path, "rb") as file:
-                st.download_button(
-                        label=f"Unduh {file_name}",
-                        data=file,
-                        file_name=file_name,
-                        key=f"download_button_{idx}"  # Unique key for each file
-                    )
+                download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
 
 if __name__ == '__main__':
     main()
