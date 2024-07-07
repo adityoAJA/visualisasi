@@ -7,8 +7,9 @@ import os
 
 # Function to download and process data
 def download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year):
-    download_buttons = []  # List to hold download buttons
-    
+    # List to hold download buttons
+    download_buttons = []
+
     # Define the template URL based on the dataset and resolution
     if dataname == 'CHIRTS':
         template = f'https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/global_netcdf_p05/{varname}/'
@@ -136,7 +137,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
     
     # # Fungsi untuk memuat data dari file yang diunggah
     # @st.cache_data(show_spinner=False)
