@@ -22,9 +22,7 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
     temp_dir = tempfile.TemporaryDirectory()
 
     # Define the template URL based on the dataset and resolution
-    if dataname == 'CHIRTS':
-        template = f'https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/global_netcdf_p05/{varname}/'
-    elif dataname == 'CHIRPS':
+    if dataname == 'CHIRPS':
         if resolution == 'p05':
             template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p05/'
         elif resolution == 'p25':
@@ -33,10 +31,7 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
     # Loop through the years
     for iy in range(start_year, end_year + 1):
         # Construct the filename
-        if dataname == 'CHIRTS':
-            fname = f'{varname}.{iy}.nc'
-        elif dataname == 'CHIRPS':
-            fname = f'chirps-v2.0.{iy}.days_{resolution}.nc'
+        fname = f'chirps-v2.0.{iy}.days_{resolution}.nc'
 
         # Download the file
         link = template + fname
@@ -60,7 +55,7 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                 st.success(f"Berhasil mengunduh {fname}")
 
                 # Process the file (slice to region of interest and save)
-                with xr.open_dataset(temp_file_path, decode_times=False) as data:
+                with xr.open_dataset(temp_file_path) as data:
                     data['time'] = pd.date_range(start=f'{iy}-01-01', end=f'{iy}-12-31', freq='D')
                     sliced_data = data.sel(lon=slice(longitude[0], longitude[1]), lat=slice(latitude[0], latitude[1]))
                     final_path = os.path.join(temp_dir.name, varname, resolution, fname)
@@ -114,12 +109,8 @@ def main():
         # Resolution selection for CHIRPS dataset
         resolution = st.selectbox('Pilih Resolusi', ['p05', 'p25'])
     else:
-        dataname = 'CHIRTS'
-        with st.expander(":blue-background[**Keterangan :**]"):
-            st.caption(f"*Dataset yang digunakan :* **{dataname}.**")
-            st.caption("**Deskripsi :** *Data Suhu Udara (Maksimum atau Minimum) Harian Global.*")
-            st.caption("**Resolusi :** *5 x 5 km (ukuran file 25 GB).*")
-        resolution = None  # No resolution selection for CHIRTS dataset
+        st.error("Dataset untuk Tmax dan Tmin belum didukung dalam contoh ini.")
+        return
 
     longitude = st.slider('Pilih Rentang Bujur', min_value=90.0, max_value=145.0, value=(105.0, 125.0), step=0.1)
     latitude = st.slider('Pilih Rentang Lintang', min_value=-12.0, max_value=8.0, value=(-5.0, 7.0), step=0.1)
@@ -138,7 +129,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
     
     # # Fungsi untuk memuat data dari file yang diunggah
     # @st.cache_data(show_spinner=False)
