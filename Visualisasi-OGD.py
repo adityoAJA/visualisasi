@@ -27,7 +27,7 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
 
         # Download the file
         link = template + fname
-        st.info(f"Sedang mengunduh {fname}")
+        st.info(f"Sedang mengunduh {fname} dari server")
         response = requests.get(link, stream=True)
                     
         if response.status_code == 200:
@@ -44,7 +44,7 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                         progress_bar.progress(tmp_file.tell() / total_size)
                 
                 progress_bar.empty()
-                st.success(f"Memotong {fname} sesuai koordinat terpilih")
+                st.info(f"Memotong {fname} sesuai koordinat terpilih")
 
                 # Process the file (slice to region of interest and save)
                 with xr.open_dataarray(temp_file_path, decode_times=False) as data:
@@ -135,7 +135,7 @@ def main():
         for idx, (file_path, file_name) in enumerate(st.session_state['download_files']):
             with open(file_path, "rb") as file:
                 st.download_button(
-                    label=f"Unduh {file_name}",
+                    label=f"{file_name}",
                     data=file,
                     file_name=file_name,
                     key=f"download_button_{idx}"  # Unique key for each file
