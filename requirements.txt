@@ -4,5 +4,5 @@ numpy
 plotly
 netcdf4
 openpyxl
-h5netcdf>=0.10.0
-h5py>=3.5.0
+h5netcdf
+h5py
