@@ -16,26 +16,25 @@ st.set_page_config(
     initial_sidebar_state="expanded")
 
 # Function to download and process data
-def download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year):
+def download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year):
     # Create a temporary directory for saving files
     temp_dir = tempfile.TemporaryDirectory()
 
     # Define the template URL based on the dataset and resolution
-    if dataname == 'CHIRTS':
-        template = f'https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/global_netcdf_p05/{varname}/'
-    elif dataname == 'CHIRPS':
-        if resolution == 'p05':
-            template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p05/'
-        elif resolution == 'p25':
-            template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p25/'
+    if varname == 'Precipitation':
+        template = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/'
+    elif varname == 'Tmax':
+        template = 'https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/global_netcdf_p05/Tmax/'
+    elif varname == 'Tmin':
+        template = 'https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/global_netcdf_p05/Tmin/'
 
     # Loop through the years
     for iy in range(start_year, end_year + 1):
         # Construct the filename
-        if dataname == 'CHIRTS':
-            fname = f'{varname}.{iy}.nc'
-        elif dataname == 'CHIRPS':
+        if varname == 'Precipitation':
             fname = f'chirps-v2.0.{iy}.days_{resolution}.nc'
+        elif varname in ['Tmax', 'Tmin']:
+            fname = f'{varname.lower()}.{iy}.nc'
 
         # Download the file
         link = template + fname
@@ -59,9 +58,9 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                 st.success(f"Memotong {fname} sesuai koordinat terpilih")
 
                 # Process the file (slice to region of interest and save)
-                with xr.open_dataarray(temp_file_path, decode_times=False) as data:
-                    data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
-                    sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
+                with xr.open_dataset(temp_file_path, decode_times=False) as data:
+                    data['time'] = pd.date_range(start=f'{iy}-01-01', end=f'{iy}-12-31', freq='D')
+                    sliced_data = data.sel(lon=slice(longitude[0], longitude[1]), lat=slice(latitude[0], latitude[1]))
                     final_path = os.path.join(temp_dir.name, varname, resolution, fname)
                     os.makedirs(os.path.dirname(final_path), exist_ok=True)
                     sliced_data.to_netcdf(final_path)  # Save sliced data to final directory
@@ -70,7 +69,7 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                     # Save the file information to session state
                     if 'download_files' not in st.session_state:
                         st.session_state['download_files'] = []
-                    st.session_state['download_files'].append((final_path, f"{varname}_{iy}_{resolution}.nc"))
+                    st.session_state['download_files'].append((final_path, fname))
 
             except Exception as e:
                 st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -92,33 +91,12 @@ def main():
     
     # Determine dataset automatically based on the selected variable
     if varname == 'Precipitation':
-        dataname = 'CHIRPS'
-        with st.expander(":blue-background[**Keterangan :**]"):
-            st.caption(f"*Dataset yang digunakan :* **{dataname}.**")
-            st.caption("**Deskripsi :** *Data Curah Hujan Harian Global.*")
-            st.caption('''
-                        **p05 :**
-                            *Resolusi Tinggi 5 x 5 km (ukuran file 1-2 GB).*
-                        ''')
-            st.caption('''
-                        **p25 :**
-                            *Resolusi Menengah 25 x 25 km (ukuran file 60-70 MB).*
-                        ''')
-        # Resolution selection for CHIRPS dataset
         resolution = st.selectbox('Pilih Resolusi', ['p05', 'p25'])
     else:
-        dataname = 'CHIRTS'
-        with st.expander(":blue-background[**Keterangan :**]"):
-            st.caption(f"*Dataset yang digunakan :* **{dataname}.**")
-            st.caption("**Deskripsi :** *Data Suhu Udara (Maksimum atau Minimum) Harian Global.*")
-            st.caption("**Resolusi :** *5 x 5 km (ukuran file 25 GB).*")
-        resolution = None  # No resolution selection for CHIRTS dataset
+        resolution = None  # No resolution selection for Tmax and Tmin datasets
 
     longitude = st.slider('Pilih Rentang Bujur', min_value=90.0, max_value=145.0, value=(105.0, 125.0), step=0.1)
     latitude = st.slider('Pilih Rentang Lintang', min_value=-12.0, max_value=8.0, value=(-5.0, 7.0), step=0.1)
-    with st.expander(":blue-background[**Keterangan :**]"):
-        st.caption("*Default Rentang wilayah yang digunakan adalah Lintang dan Bujur di wilayah Indonesia.*")
-        st.caption("*Data yang akan tersimpan akan dipotong sesuai pilihan Lintang dan Bujur yang diinginkan.*")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -126,19 +104,9 @@ def main():
     with col2:
         end_year = st.number_input('Tahun Akhir', min_value=1981, max_value=2024, value=2010, step=1)
 
-    if varname == 'Precipitation':
-        with st.expander(":blue-background[**Keterangan :**]"):
-            st.caption("**Parameter :** *Precipitation (Curah Hujan).*")
-            st.caption("**Deskripsi :** *Dimulai dari tahun 1981 s.d 2024.*")
-    else:
-        with st.expander(":blue-background[**Keterangan :**]"):
-            st.caption("**Parameter :** *Tmax (suhu maksimum) dan Tmin (suhu minimum).*")
-            st.caption("**Deskripsi :** *Dimulai dari tahun 1983 s.d 2016.*")
-
     if st.button('Download Data'):
-            st.session_state['download_files'] = []  # Reset the session state for new downloads
-            # Corrected function call with all required arguments
-            download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year)
+        st.session_state['download_files'] = []  # Reset the session state for new downloads
+        download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
     
     # Display download buttons for available files
     if 'download_files' in st.session_state and st.session_state['download_files']:
@@ -147,11 +115,11 @@ def main():
         for idx, (file_path, file_name) in enumerate(st.session_state['download_files']):
             with open(file_path, "rb") as file:
                 st.download_button(
-                        label=f"Unduh {file_name}",
-                        data=file,
-                        file_name=file_name,
-                        key=f"download_button_{idx}"  # Unique key for each file
-                    )
+                    label=f"Unduh {file_name}",
+                    data=file,
+                    file_name=file_name,
+                    key=f"download_button_{idx}"  # Unique key for each file
+                )
 
 if __name__ == '__main__':
     main()
