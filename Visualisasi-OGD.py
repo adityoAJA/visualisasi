@@ -7,6 +7,8 @@ import os
 
 # Function to download and process data
 def download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year):
+    download_buttons = []  # List to hold download buttons
+    
     # Define the template URL based on the dataset and resolution
     if dataname == 'CHIRTS':
         template = f'https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/global_netcdf_p05/{varname}/'
@@ -50,10 +52,14 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                     data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
                     sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
 
-                    # Provide a download link for the user to save the data
+                    # Save sliced data to temporary file
                     with tempfile.NamedTemporaryFile(suffix='.nc', delete=False) as tmp_file:
-                        sliced_data.to_netcdf(tmp_file.name)  # Save sliced data to temporary file
-                        st.download_button(label=f"Unduh {fname}", data=tmp_file.name, file_name=fname)
+                        sliced_data.to_netcdf(tmp_file.name)
+                        file_path = tmp_file.name
+
+                # Create a download button for this file
+                download_button = st.download_button(label=f"Unduh {fname}", data=file_path, file_name=fname, key=f"download_button_{iy}")
+                download_buttons.append(download_button)
 
             except Exception as e:
                 st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -65,6 +71,12 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                     st.error(f"Kesalahan dalam menghapus temporary file: {e}")
         else:
             st.error(f"Gagal mengunduh {fname} dari {link}")
+
+    # Display all download buttons after the loop completes
+    if download_buttons:
+        st.header('Unduh Data')
+        for button in download_buttons:
+            button
 
 # Streamlit app
 def main():
@@ -124,6 +136,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
     
     # # Fungsi untuk memuat data dari file yang diunggah
     # @st.cache_data(show_spinner=False)
