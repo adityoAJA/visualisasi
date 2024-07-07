@@ -48,13 +48,13 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
 
                 # Process the file (slice to region of interest and save)
                 with xr.open_dataarray(temp_file_path, decode_times=False) as data:
-                    data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
+                    data['time'] = pd.date_range(start=f"{iy}-01-01", end=f"{iy}-12-31", periods=len(data.time))
                     sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
 
                     # Save sliced data to temporary file
                     with tempfile.NamedTemporaryFile(suffix='.nc', delete=False) as tmp_file:
                         sliced_data.to_netcdf(tmp_file.name)
-                        file_path = tmp_file.name
+                        final_tmp_path = tmp_file.name
 
                     # Save the file information to session state
                     if 'download_files' not in st.session_state:
@@ -124,9 +124,9 @@ def main():
             st.caption("**Parameter :** *Tmax (suhu maksimum) dan Tmin (suhu minimum).*")
             st.caption("**Deskripsi :** *Dimulai dari tahun 1983 s.d 2016.*")
     
-   if st.button('Download Data'):
+    if st.button('Download Data'):
         st.session_state['download_files'] = []  # Reset the session state for new downloads
-        download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
+        download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year)
 
     # Display download buttons for available files
     if 'download_files' in st.session_state and st.session_state['download_files']:
