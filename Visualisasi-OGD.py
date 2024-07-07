@@ -5,6 +5,13 @@ import xarray as xr
 import pandas as pd
 import os
 
+st.set_page_config(
+        page_title="Dashboard Adityo W",
+        page_icon="🏠",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+
 # Function to download and process data
 def download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year):
 
