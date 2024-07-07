@@ -18,7 +18,7 @@ st.set_page_config(
 # Initialize session state for downloads
 if 'downloaded_files' not in st.session_state:
     st.session_state['downloaded_files'] = []
-    
+
 # Function to download and process data
 def download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year):
     # Create a temporary directory for saving files
@@ -66,7 +66,7 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                 with xr.open_dataarray(temp_file_path, decode_times=False) as data:
                     data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
                     sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
-                    final_path = os.path.join(temp_dir.name, fname)
+                    final_path = os.path.join(temp_dir.name, varname, resolution, fname)
                     os.makedirs(os.path.dirname(final_path), exist_ok=True)
                     sliced_data.to_netcdf(final_path)  # Save sliced data to final directory
                     st.success(f"Berhasil mengunduh dan menyimpan {fname} ke {final_path}")
@@ -130,7 +130,7 @@ def main():
 
     if varname == 'Precipitation':
         with st.expander(":blue-background[**Keterangan :**]"):
-            st.caption("**Parameter :** *Curah Hujan (Precipitation).*")
+            st.caption("**Parameter :** *Precipitation (Curah Hujan).*")
             st.caption("**Deskripsi :** *Dimulai dari tahun 1981 s.d 2024.*")
     else:
         with st.expander(":blue-background[**Keterangan :**]"):
@@ -148,7 +148,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
     
     # # Fungsi untuk memuat data dari file yang diunggah
     # @st.cache_data(show_spinner=False)
