@@ -13,7 +13,8 @@ st.set_page_config(
     page_title="Dashboard Adityo W",
     page_icon="🏠",
     layout="centered",
-    initial_sidebar_state="expanded")
+    initial_sidebar_state="expanded"
+)
 
 # Function to download and process data
 def download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year):
@@ -56,25 +57,25 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
                         progress_bar.progress(tmp_file.tell() / total_size)
                 
                 progress_bar.empty()
-                st.success(f"Memotong {fname} sesuai koordinat terpilih")
+                st.success(f"Berhasil mengunduh {fname}")
 
                 # Process the file (slice to region of interest and save)
-                with xr.open_dataarray(temp_file_path, decode_times=False) as data:
-                    data['time'] = pd.date_range(start=str(iy)+'-01-01', end=str(iy)+'-12-31', periods=len(data.time))
-                    sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
+                with xr.open_dataset(temp_file_path, decode_times=False) as data:
+                    data['time'] = pd.date_range(start=f'{iy}-01-01', end=f'{iy}-12-31', freq='D')
+                    sliced_data = data.sel(lon=slice(longitude[0], longitude[1]), lat=slice(latitude[0], latitude[1]))
                     final_path = os.path.join(temp_dir.name, varname, resolution, fname)
                     os.makedirs(os.path.dirname(final_path), exist_ok=True)
                     sliced_data.to_netcdf(final_path)  # Save sliced data to final directory
-                    st.success(f"Berhasil mengunduh dan menyimpan {fname} ke {final_path}")
+                    st.success(f"Berhasil menyimpan {fname} di {final_path}")
 
                     # Display download button for the current file
-                    with st.expander(':green-background[**Simpan file :**]'):
+                    with st.expander(f':green-background[**Simpan file {fname} :**]'):
                         st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
-                    with open(final_tmp_path, "rb") as file:
-                        st.download_button(
-                                label=f"Unduh {varname}_{iy}_{resolution}.nc",
+                        with open(final_path, "rb") as file:
+                            st.download_button(
+                                label=f"Unduh {fname}",
                                 data=file,
-                                file_name=f"{varname}_{iy}_{resolution}.nc",
+                                file_name=f"{fname}",
                                 key=f"download_button_{iy}"  # Unique key for each file
                             )
 
@@ -132,20 +133,12 @@ def main():
     with col2:
         end_year = st.number_input('Tahun Akhir', min_value=1981, max_value=2024, value=2010, step=1)
 
-    if varname == 'Precipitation':
-        with st.expander(":blue-background[**Keterangan :**]"):
-            st.caption("**Parameter :** *Precipitation (Curah Hujan).*")
-            st.caption("**Deskripsi :** *Dimulai dari tahun 1981 s.d 2024.*")
-    else:
-        with st.expander(":blue-background[**Keterangan :**]"):
-            st.caption("**Parameter :** *Tmax (suhu maksimum) dan Tmin (suhu minimum).*")
-            st.caption("**Deskripsi :** *Dimulai dari tahun 1983 s.d 2016.*")
-
     if st.button('Download Data'):
-                download_and_process_data(varname, resolution, longitude, latitude, start_year, end_year)
+        download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year)
 
 if __name__ == '__main__':
     main()
+
     
     # # Fungsi untuk memuat data dari file yang diunggah
     # @st.cache_data(show_spinner=False)
