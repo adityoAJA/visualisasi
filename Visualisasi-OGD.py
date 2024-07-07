@@ -39,40 +39,37 @@ def download_and_process_data(dataname, varname, resolution, longitude, latitude
         response = requests.get(link, stream=True)
                     
         if response.status_code == 200:
-            total_size = int(response.headers.get('content-length', 0))
-            chunk_size = 1024
-            progress_bar = st.progress(0)
-            temp_file_path = tempfile.NamedTemporaryFile(delete=False).name
+                total_size = int(response.headers.get('content-length', 0))
+                chunk_size = 1024
+                progress_bar = st.progress(0)
 
-            try:
-                # Write to the temporary file
-                with open(temp_file_path, 'wb') as tmp_file:
-                    for data in response.iter_content(chunk_size):
-                        tmp_file.write(data)
-                        progress_bar.progress(tmp_file.tell() / total_size)
-                
-                progress_bar.empty()
-                st.success(f"Berhasil mengunduh {fname}")
+                try:
+                    # Create a temporary file
+                    temp_file_fd, temp_file_path = tempfile.mkstemp(suffix='.nc', prefix=f'{varname}_{iy}_{resolution}_', dir='/tmp')
 
-                # Process the file (slice to region of interest and save)
-                with xr.open_dataset(temp_file_path) as data:
-                    data['time'] = pd.date_range(start=f'{iy}-01-01', end=f'{iy}-12-31', freq='D')
-                    sliced_data = data.sel(lon=slice(longitude[0], longitude[1]), lat=slice(latitude[0], latitude[1]))
-                    final_path = os.path.join(temp_dir.name, varname, resolution, fname)
-                    os.makedirs(os.path.dirname(final_path), exist_ok=True)
-                    sliced_data.to_netcdf(final_path)  # Save sliced data to final directory
-                    st.success(f"Berhasil menyimpan {fname} di {final_path}")
+                    with os.fdopen(temp_file_fd, 'wb') as tmp_file:
+                        for data in response.iter_content(chunk_size):
+                            tmp_file.write(data)
+                            progress_bar.progress(tmp_file.tell() / total_size)
 
-                    # Display download button for the current file
-                    with st.expander(f':green-background[**Simpan file {fname} :**]'):
-                        st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
-                        with open(final_path, "rb") as file:
-                            st.download_button(
-                                label=f"Unduh {fname}",
-                                data=file,
-                                file_name=f"{fname}",
-                                key=f"download_button_{iy}"  # Unique key for each file
-                            )
+                    progress_bar.empty()
+                    st.success(f"Berhasil mengunduh {fname} dari server")
+
+                    # Open the downloaded NetCDF file using xarray directly
+                    try:
+                        data = xr.open_dataset(temp_file_path, decode_times=False)
+                        data['time'] = pd.date_range(start=f'{iy}-01-01', end=f'{iy}-12-31', periods=len(data.time))
+                        sliced_data = data.sel(longitude=slice(longitude[0], longitude[1]), latitude=slice(latitude[0], latitude[1]))
+
+                        # Save sliced data to a temporary file
+                        final_tmp_path = f"/tmp/{varname}_{iy}_{resolution}_sliced.nc"
+                        sliced_data.to_netcdf(final_tmp_path)
+                        st.success(f"Memotong dan menyimpan {fname} sesuai koordinat terpilih")
+
+                        # Save the file information to session state
+                        if 'download_files' not in st.session_state:
+                            st.session_state['download_files'] = []
+                        st.session_state['download_files'].append((final_tmp_path, f"{varname}_{iy}_{resolution}.nc"))
 
             except Exception as e:
                 st.error(f"Kesalahan dalam memproses {fname}: {e}")
@@ -124,8 +121,18 @@ def main():
     with col2:
         end_year = st.number_input('Tahun Akhir', min_value=1981, max_value=2024, value=2010, step=1)
 
-    if st.button('Download Data'):
-        download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year)
+    # Display download buttons for available files
+    if 'download_files' in st.session_state and st.session_state['download_files']:
+        with st.expander(':green-background[**Simpan file :**]'):
+            st.caption('*File sudah siap disimpan ke direktori lokal dengan klik tombol di bawah*')
+        for idx, (file_path, file_name) in enumerate(st.session_state['download_files']):
+            with open(file_path, "rb") as file:
+                st.download_button(
+                        label=f"Unduh {file_name}",
+                        data=file,
+                        file_name=file_name,
+                        key=f"download_button_{idx}"  # Unique key for each file
+                    )
 
 if __name__ == '__main__':
     main()
