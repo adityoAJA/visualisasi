@@ -10,7 +10,7 @@ import io
 st.set_page_config(
         page_title="Dashboard Perubahan Iklim",
         page_icon="🏠",
-        layout="wide",
+        layout="centered",
         initial_sidebar_state="expanded"
     )
 
