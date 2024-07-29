@@ -34,11 +34,11 @@ if uploaded_file is not None:
 	# fungsi load data
 	@st.cache_data
 	def load_data(file_content):
-		with xr.open_dataset(io.BytesIO(file_content), engine='h5netcdf') as data:
+		with xr.open_dataset(io.BytesIO(file_content), decode_times=False, engine='h5netcdf') as data:
 			return data.load()
 
 	# membaca data yang diupload
-	data = load_data(file_content, decode_times=False)
+	data = load_data(file_content)
 
 	# mendefinisikan nama dari data
 	if 'precip' in data:
