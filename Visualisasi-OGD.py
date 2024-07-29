@@ -9,17 +9,12 @@ from auth import authenticate
 from datetime import datetime, timedelta
 
 # Set layout
-st.logo('data/Logo_BMKG_(2010).png') # logo pada sidebar
 st.set_page_config(
         page_title="Dashboard Perubahan Iklim",
         page_icon="🏠",
         layout="wide",
         initial_sidebar_state="expanded"
     )
-
-# Membaca file CSS
-with open("data/style.css") as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # Fungsi untuk memeriksa expiry time
 def check_expiry():
