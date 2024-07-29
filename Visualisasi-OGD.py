@@ -34,8 +34,12 @@ if uploaded_file is not None:
 	# fungsi load data
 	@st.cache_data
 	def load_data(file_content):
-		with xr.open_dataset(io.BytesIO(file_content), decode_times=False, engine='h5netcdf') as data:
-			return data.load()
+		try:
+        		data = xr.open_dataset(io.BytesIO(file_content), decode_times=True, engine='h5netcdf')
+   		except ValueError as e:
+        		st.warning(f"Failed to decode times with 'decode_times=True': {e}")
+        		data = xr.open_dataset(io.BytesIO(file_content), decode_times=False, engine='h5netcdf')
+		return data.load()
 
 	# membaca data yang diupload
 	data = load_data(file_content)
