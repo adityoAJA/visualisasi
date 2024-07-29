@@ -38,7 +38,7 @@ if uploaded_file is not None:
 			return data.load()
 
 	# membaca data yang diupload
-	data = load_data(file_content)
+	data = load_data(file_content, decode_times=False)
 
 	# mendefinisikan nama dari data
 	if 'precip' in data:
