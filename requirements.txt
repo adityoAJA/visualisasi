@@ -1,7 +1,5 @@
 xarray
 pandas
 numpy
-io
 plotly
-netcdf4
 openpyxl
