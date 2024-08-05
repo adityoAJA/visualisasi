@@ -4,8 +4,6 @@ import xarray as xr
 import requests
 import os
 import tempfile
-from auth import authenticate
-from datetime import datetime, timedelta
 
 # fungsi komponen download
 def download_and_process_data(dataname, varname, resolution, longitude, latitude, start_year, end_year):
