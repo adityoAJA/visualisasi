@@ -106,7 +106,7 @@ def main():
 
     # komponen slider / memilih koordinat
     longitude = st.slider('Pilih Rentang Bujur', min_value=90.0, max_value=145.0, value=(105.0, 125.0), step=0.1)
-    latitude = st.slider('Pilih Rentang Lintang', min_value=-12.0, max_value=8.0, value=(-5.0, 7.0), step=0.1)
+    latitude = st.slider('Pilih Rentang Lintang', min_value=-12.0, max_value=10.0, value=(-5.0, 7.0), step=0.1)
     # narasi terkait koordinat
     with st.expander("**Keterangan :**"):
         st.caption("*Default Rentang wilayah yang digunakan adalah Lintang dan Bujur di wilayah Indonesia.*")
